@@ -1,0 +1,72 @@
+{#
+  Shared dashboard shell: fixed sidebar on desktop, slide-in drawer on mobile,
+  sticky topbar with the signed-in user, scrollable content and a slim footer.
+
+  Pages extend this layout and fill `dashboard_content`. The public navbar and
+  footer are switched off because the sidebar replaces them.
+#}
+{% extends "base.html" %}
+
+{% block body_class %}page-dashboard{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block main_class %}dashboard-main{% endblock %}
+{# Flash messages move inside the content column on dashboards. #}
+{% block flash %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+  {% if current_user.is_admin %}
+    {% include "partials/_sidebar_admin.html" %}
+  {% elif current_user.is_doctor %}
+    {% include "partials/_sidebar_doctor.html" %}
+  {% else %}
+    {% include "partials/_sidebar_patient.html" %}
+  {% endif %}
+
+  <div class="app-content">
+    <header class="app-topbar">
+      <div class="d-flex align-items-center gap-2 gap-md-3 min-w-0">
+        <button class="btn btn-icon d-lg-none" type="button" data-sidebar-toggle
+                aria-controls="hmsSidebar" aria-expanded="false" aria-label="Open menu">
+          <i class="bi bi-list"></i>
+        </button>
+        <div class="min-w-0">
+          <h1 class="app-topbar-title text-truncate">{% block page_title %}Dashboard{% endblock %}</h1>
+          <p class="app-topbar-sub text-truncate d-none d-sm-block">{% block page_subtitle %}{% endblock %}</p>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge badge-role d-none d-md-inline-flex">{{ current_user.role_label }}</span>
+
+        <div class="user-chip">
+          <span class="user-avatar">{{ current_user.initials }}</span>
+          <span class="user-meta d-none d-sm-flex">
+            <strong>{{ current_user.full_name }}</strong>
+            <small>{{ current_user.email }}</small>
+          </span>
+        </div>
+
+        <button class="btn btn-outline-hms btn-sm" type="button"
+                data-bs-toggle="modal" data-bs-target="#logoutModal">
+          <i class="bi bi-box-arrow-right"></i>
+          <span class="d-none d-md-inline ms-1">Logout</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-body">
+      {% include "partials/_flash.html" %}
+      {% block dashboard_content %}{% endblock %}
+    </main>
+
+    <footer class="app-footer">
+      <span>&copy; {{ current_year }} {{ hospital_name }}</span>
+      <span class="d-none d-sm-inline">Hospital Management System</span>
+    </footer>
+  </div>
+</div>
+
+{% include "partials/_logout_modal.html" %}
+{% endblock %}

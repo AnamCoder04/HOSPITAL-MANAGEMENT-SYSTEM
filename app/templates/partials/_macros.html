@@ -1,0 +1,51 @@
+{#
+  Reusable UI pieces: stat cards, appointment status badges, empty states,
+  page headers and action buttons. Import with context when a macro needs
+  template globals (e.g. `available_endpoints`).
+#}
+
+{% macro stat_card(label, value, icon, tone="blue", hint="") %}
+  <div class="stat-card h-100">
+    <div class="stat-icon stat-icon-{{ tone }}"><i class="bi {{ icon }}"></i></div>
+    <div class="stat-body">
+      <span class="stat-label">{{ label }}</span>
+      <span class="stat-value">{{ value }}</span>
+      {% if hint %}<span class="stat-hint">{{ hint }}</span>{% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+
+{% macro status_badge(appointment) %}
+  <span class="badge {{ appointment.status_badge_class }}">{{ appointment.status_label }}</span>
+{% endmacro %}
+
+
+{% macro empty_state(title, message, icon="bi-inbox") %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="bi {{ icon }}"></i></div>
+    <h3 class="h6 mb-1">{{ title }}</h3>
+    <p class="mb-0">{{ message }}</p>
+  </div>
+{% endmacro %}
+
+
+{% macro page_header(title, subtitle="") %}
+  <div class="page-heading">
+    <h2 class="h5 mb-1">{{ title }}</h2>
+    {% if subtitle %}<p class="text-muted-2 mb-0">{{ subtitle }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+
+{% macro action_button(endpoint, label, icon, primary=False) %}
+  {% if endpoint in available_endpoints %}
+    <a href="{{ url_for(endpoint) }}" class="btn btn-sm {{ 'btn-hms' if primary else 'btn-outline-hms' }} w-100 justify-content-start">
+      <i class="bi {{ icon }} me-2"></i>{{ label }}
+    </a>
+  {% else %}
+    <span class="btn btn-sm btn-outline-hms w-100 justify-content-start disabled" aria-disabled="true">
+      <i class="bi {{ icon }} me-2"></i>{{ label }}
+    </span>
+  {% endif %}
+{% endmacro %}

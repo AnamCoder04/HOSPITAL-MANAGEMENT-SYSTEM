@@ -1,0 +1,28 @@
+{#
+  Sidebar macros.
+
+  sidebar_link() only builds a real link when the endpoint exists. Routes for
+  later tasks are not registered yet, so those items render as a muted,
+  non-clickable "soon" item instead of raising url_for() BuildError.
+#}
+{% macro sidebar_heading(label) %}
+  <p class="sidebar-heading">{{ label }}</p>
+{% endmacro %}
+
+
+{% macro sidebar_link(endpoint, icon, label) %}
+  {% if endpoint in available_endpoints %}
+    {% set is_active = request.endpoint == endpoint %}
+    <a class="sidebar-link{{ ' active' if is_active }}" href="{{ url_for(endpoint) }}"
+       {% if is_active %}aria-current="page"{% endif %}>
+      <i class="bi {{ icon }}"></i>
+      <span>{{ label }}</span>
+    </a>
+  {% else %}
+    <span class="sidebar-link is-disabled" title="Available in a later step">
+      <i class="bi {{ icon }}"></i>
+      <span>{{ label }}</span>
+      <span class="sidebar-soon">soon</span>
+    </span>
+  {% endif %}
+{% endmacro %}

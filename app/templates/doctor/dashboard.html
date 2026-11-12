@@ -1,29 +1,93 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import stat_card, status_badge, empty_state, action_button with context %}
 
 {% block title %}Doctor dashboard &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}{{ today.strftime("%A, %d %B %Y") }}{% endblock %}
 
-{% block content %}
-<div class="container dashboard-shell">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <div>
-      <span class="badge badge-soft-teal mb-2">{{ current_user.role_label }}</span>
-      <h1 class="h3 mb-1">Welcome, {{ current_user.full_name }}</h1>
-      <p class="text-muted-2 mb-0">Signed in as {{ current_user.email }}</p>
+{% block dashboard_content %}
+<div class="row g-3 g-xl-4 mb-4">
+  <div class="col-6 col-xl-3">
+    {{ stat_card("Today's appointments", stats.today, "bi-calendar2-day", "blue", "Scheduled for today") }}
+  </div>
+  <div class="col-6 col-xl-3">
+    {{ stat_card("Upcoming", stats.upcoming, "bi-calendar2-week", "teal", "Booked from today onwards") }}
+  </div>
+  <div class="col-6 col-xl-3">
+    {{ stat_card("Completed", stats.completed, "bi-check2-circle", "amber", "Consultations finished") }}
+  </div>
+  <div class="col-6 col-xl-3">
+    {{ stat_card("My patients", stats.patients, "bi-people", "red", "Distinct patients seen") }}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="hms-card h-100">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Today's schedule</h2>
+          <p class="hms-card-sub">Only appointments booked with you</p>
+        </div>
+      </div>
+
+      {% if todays_appointments %}
+        <div class="table-responsive">
+          <table class="table hms-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Patient</th>
+                <th scope="col">Reason</th>
+                <th scope="col" class="text-end">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for appointment in todays_appointments %}
+                <tr>
+                  <td class="text-nowrap fw-semibold">{{ appointment.appointment_time.strftime("%H:%M") }}</td>
+                  <td>
+                    <span class="d-block">{{ appointment.patient.full_name }}</span>
+                    <small class="text-muted-2">{{ appointment.patient.patient_code }}</small>
+                  </td>
+                  <td class="text-muted-2">{{ appointment.reason or "—" }}</td>
+                  <td class="text-end">{{ status_badge(appointment) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ empty_state("Nothing scheduled today", "Your appointments for today will show up here.", "bi-calendar2-x") }}
+      {% endif %}
     </div>
-    {% include "partials/_logout_form.html" %}
   </div>
 
-  <div class="card-soft p-4">
-    <h2 class="h5 mb-2">Your doctor workspace is ready</h2>
-    <p class="text-muted-2 mb-3">
-      Authentication and role protection are working. Today's appointments,
-      availability management and medical records arrive in the next tasks.
-    </p>
-    <ul class="text-muted-2 mb-0">
-      <li>Task 5 &mdash; dashboard layout and appointment overview</li>
-      <li>Task 8 &mdash; appointments, availability and my patients</li>
-      <li>Task 10 &mdash; diagnosis, prescriptions and treatment notes</li>
-    </ul>
+  <div class="col-xl-4">
+    <div class="hms-card mb-4">
+      <div class="hms-card-header">
+        <h2 class="hms-card-title">Your details</h2>
+      </div>
+      {% if current_user.doctor %}
+        <dl class="detail-list mb-0">
+          <dt>Specialization</dt><dd>{{ current_user.doctor.specialization }}</dd>
+          <dt>Department</dt><dd>{{ current_user.doctor.department.name }}</dd>
+          <dt>Room</dt><dd>{{ current_user.doctor.room_no or "—" }}</dd>
+          <dt>Consultation fee</dt><dd>&#8377;{{ "%.2f"|format(current_user.doctor.consultation_fee) }}</dd>
+        </dl>
+      {% endif %}
+    </div>
+
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <h2 class="hms-card-title">Quick actions</h2>
+      </div>
+      <div class="d-grid gap-2">
+        {{ action_button("doctor.appointments", "My appointments", "bi-calendar2-check", True) }}
+        {{ action_button("doctor.availability", "Manage availability", "bi-clock-history") }}
+        {{ action_button("doctor.patients", "My patients", "bi-people") }}
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

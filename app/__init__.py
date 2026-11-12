@@ -12,7 +12,7 @@ Everything the application needs is assembled here:
 import os
 from datetime import datetime
 
-from flask import Flask
+from flask import Flask, current_app
 
 from app.extensions import csrf, db, login_manager
 from app.utils.security import dashboard_url
@@ -78,11 +78,17 @@ def register_template_context(app: Flask) -> None:
 
     @app.context_processor
     def inject_globals() -> dict:
+        # Endpoints registered so far. The sidebar templates use this to render
+        # a muted "soon" item for pages that arrive in a later task instead of
+        # raising a BuildError from url_for().
+        available_endpoints = {rule.endpoint for rule in current_app.url_map.iter_rules()}
+
         return {
             "hospital_name": app.config["HOSPITAL_NAME"],
             "hospital_tagline": app.config["HOSPITAL_TAGLINE"],
             "current_year": datetime.now().year,
             "dashboard_url": dashboard_url,
+            "available_endpoints": available_endpoints,
         }
 
 

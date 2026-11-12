@@ -1,30 +1,107 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import stat_card, status_badge, empty_state, action_button with context %}
 
 {% block title %}Admin dashboard &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Hospital overview for {{ today.strftime("%d %B %Y") }}{% endblock %}
 
-{% block content %}
-<div class="container dashboard-shell">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <div>
-      <span class="badge badge-soft-blue mb-2">{{ current_user.role_label }}</span>
-      <h1 class="h3 mb-1">Welcome, {{ current_user.full_name }}</h1>
-      <p class="text-muted-2 mb-0">Signed in as {{ current_user.email }}</p>
+{% block dashboard_content %}
+<!-- Statistic cards -->
+<div class="row g-3 g-xl-4 mb-4">
+  <div class="col-6 col-xl-3">
+    {{ stat_card("Total doctors", stats.doctors, "bi-person-badge", "blue", stats.available_doctors ~ " available for booking") }}
+  </div>
+  <div class="col-6 col-xl-3">
+    {{ stat_card("Total patients", stats.patients, "bi-people", "teal", "Registered patient accounts") }}
+  </div>
+  <div class="col-6 col-xl-3">
+    {{ stat_card("Appointments", stats.appointments, "bi-calendar2-check", "amber", stats.booked ~ " currently booked") }}
+  </div>
+  <div class="col-6 col-xl-3">
+    {{ stat_card("Today", stats.today, "bi-clock", "red", "Appointments scheduled today") }}
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Recent appointments -->
+  <div class="col-xl-8">
+    <div class="hms-card h-100">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Recent appointments</h2>
+          <p class="hms-card-sub">Latest bookings across every doctor</p>
+        </div>
+      </div>
+
+      {% if appointments %}
+        <div class="table-responsive">
+          <table class="table hms-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Patient</th>
+                <th scope="col">Doctor</th>
+                <th scope="col">Date</th>
+                <th scope="col">Time</th>
+                <th scope="col" class="text-end">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for appointment in appointments %}
+                <tr>
+                  <td>
+                    <span class="d-block fw-semibold">{{ appointment.patient.full_name }}</span>
+                    <small class="text-muted-2">{{ appointment.patient.patient_code }}</small>
+                  </td>
+                  <td>
+                    <span class="d-block">Dr. {{ appointment.doctor.full_name }}</span>
+                    <small class="text-muted-2">{{ appointment.doctor.specialization }}</small>
+                  </td>
+                  <td class="text-nowrap">{{ appointment.appointment_date.strftime("%d %b %Y") }}</td>
+                  <td class="text-nowrap">{{ appointment.appointment_time.strftime("%H:%M") }}</td>
+                  <td class="text-end">{{ status_badge(appointment) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ empty_state("No appointments yet", "Bookings made by patients will appear here.", "bi-calendar2-x") }}
+      {% endif %}
     </div>
-    {% include "partials/_logout_form.html" %}
   </div>
 
-  <div class="card-soft p-4">
-    <h2 class="h5 mb-2">Your administrator workspace is ready</h2>
-    <p class="text-muted-2 mb-3">
-      Authentication and role protection are working. The dashboard statistics,
-      doctor and patient management, departments and appointment oversight are
-      added in the next tasks.
-    </p>
-    <ul class="text-muted-2 mb-0">
-      <li>Task 5 &mdash; dashboard layout, statistic cards and navigation</li>
-      <li>Task 6 &mdash; departments and doctor accounts</li>
-      <li>Task 7 &mdash; patient management and appointment oversight</li>
-    </ul>
+  <!-- Side column -->
+  <div class="col-xl-4">
+    <div class="hms-card mb-4">
+      <div class="hms-card-header">
+        <h2 class="hms-card-title">At a glance</h2>
+      </div>
+      <ul class="glance-list">
+        <li>
+          <span><i class="bi bi-circle-fill glance-dot dot-booked"></i> Booked</span>
+          <strong>{{ stats.booked }}</strong>
+        </li>
+        <li>
+          <span><i class="bi bi-circle-fill glance-dot dot-completed"></i> Completed</span>
+          <strong>{{ stats.completed }}</strong>
+        </li>
+        <li>
+          <span><i class="bi bi-circle-fill glance-dot dot-cancelled"></i> Cancelled</span>
+          <strong>{{ stats.cancelled }}</strong>
+        </li>
+      </ul>
+    </div>
+
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <h2 class="hms-card-title">Quick actions</h2>
+      </div>
+      <div class="d-grid gap-2">
+        {{ action_button("admin.doctors", "Manage doctors", "bi-person-badge", True) }}
+        {{ action_button("admin.patients", "Manage patients", "bi-people") }}
+        {{ action_button("admin.appointments", "All appointments", "bi-calendar2-check") }}
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

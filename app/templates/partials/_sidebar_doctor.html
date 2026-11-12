@@ -1,0 +1,30 @@
+{% from "partials/_nav_macros.html" import sidebar_heading, sidebar_link with context %}
+{# Doctor sidebar: only this doctor's own workspace. #}
+<aside class="hms-sidebar" id="hmsSidebar" aria-label="Doctor navigation">
+  <div class="sidebar-brand">
+    <a href="{{ url_for('main.index') }}">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" width="34" height="34">
+      <span>
+        <strong>{{ hospital_name }}</strong>
+        <small>Doctor portal</small>
+      </span>
+    </a>
+    <button type="button" class="btn-close btn-close-white d-lg-none" data-sidebar-close aria-label="Close menu"></button>
+  </div>
+
+  <nav class="sidebar-body">
+    {{ sidebar_heading("My practice") }}
+    {{ sidebar_link("doctor.dashboard", "bi-speedometer2", "Dashboard") }}
+    {{ sidebar_link("doctor.appointments", "bi-calendar2-check", "Appointments") }}
+    {{ sidebar_link("doctor.availability", "bi-clock-history", "Availability") }}
+    {{ sidebar_link("doctor.patients", "bi-people", "My patients") }}
+
+    {{ sidebar_heading("Account") }}
+    {{ sidebar_link("doctor.profile", "bi-person-gear", "My profile") }}
+  </nav>
+
+  <div class="sidebar-footer">
+    {{ sidebar_link("main.index", "bi-house", "Hospital home") }}
+  </div>
+</aside>
+<div class="sidebar-backdrop" data-sidebar-backdrop hidden></div>

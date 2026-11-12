@@ -1,0 +1,35 @@
+{% from "partials/_nav_macros.html" import sidebar_heading, sidebar_link with context %}
+{#
+  Administrator sidebar. Each link points at a real endpoint; links whose
+  route does not exist yet are rendered as muted "soon" items instead of
+  raising a BuildError, so the menu can be defined once and light up as the
+  later tasks add their routes.
+#}
+<aside class="hms-sidebar" id="hmsSidebar" aria-label="Administrator navigation">
+  <div class="sidebar-brand">
+    <a href="{{ url_for('main.index') }}">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" width="34" height="34">
+      <span>
+        <strong>{{ hospital_name }}</strong>
+        <small>Administration</small>
+      </span>
+    </a>
+    <button type="button" class="btn-close btn-close-white d-lg-none" data-sidebar-close aria-label="Close menu"></button>
+  </div>
+
+  <nav class="sidebar-body">
+    {{ sidebar_heading("Overview") }}
+    {{ sidebar_link("admin.dashboard", "bi-speedometer2", "Dashboard") }}
+
+    {{ sidebar_heading("Management") }}
+    {{ sidebar_link("admin.doctors", "bi-person-badge", "Doctors") }}
+    {{ sidebar_link("admin.departments", "bi-diagram-3", "Departments") }}
+    {{ sidebar_link("admin.patients", "bi-people", "Patients") }}
+    {{ sidebar_link("admin.appointments", "bi-calendar2-check", "Appointments") }}
+  </nav>
+
+  <div class="sidebar-footer">
+    {{ sidebar_link("main.index", "bi-house", "Hospital home") }}
+  </div>
+</aside>
+<div class="sidebar-backdrop" data-sidebar-backdrop hidden></div>

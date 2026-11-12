@@ -1,0 +1,24 @@
+{#
+  Logout confirmation modal (Bootstrap). Included by the dashboard layout;
+  the buttons only work because Bootstrap's bundle is loaded in base.html.
+#}
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="logoutModalLabel">Sign out?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        You will need to sign in again to reach your portal.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-hms" data-bs-dismiss="modal">Stay signed in</button>
+        <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">Yes, sign out</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
