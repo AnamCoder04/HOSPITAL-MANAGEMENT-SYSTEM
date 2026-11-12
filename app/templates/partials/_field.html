@@ -1,15 +1,17 @@
-{% macro render_field(field, placeholder="", help_text="", autocomplete="off") %}
+{% macro render_field(field, placeholder="", help_text="", autocomplete="off", list_id=None) %}
 {#
   One form field with label, widget, optional help text and validation errors.
-  Usage:  {{ field(form.email, placeholder="name@example.com", autocomplete="email") }}
+  Select widgets get Bootstrap's form-select class automatically.
 #}
+{% set css = "form-select" if field.type == "SelectField" else "form-control" %}
+{% set css = css + (" is-invalid" if field.errors else "") %}
 <div class="mb-3">
   {{ field.label(class="form-label") }}
-  {{ field(
-      class="form-control" + (" is-invalid" if field.errors else ""),
-      placeholder=placeholder,
-      autocomplete=autocomplete
-  ) }}
+  {% if list_id %}
+    {{ field(class=css, placeholder=placeholder, autocomplete=autocomplete, list=list_id) }}
+  {% else %}
+    {{ field(class=css, placeholder=placeholder, autocomplete=autocomplete) }}
+  {% endif %}
   {% if help_text %}
     <div class="form-text">{{ help_text }}</div>
   {% endif %}

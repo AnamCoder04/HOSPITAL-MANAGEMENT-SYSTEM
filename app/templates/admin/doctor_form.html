@@ -1,0 +1,144 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_field.html" import render_field %}
+
+{% block title %}{{ "Add doctor" if mode == "create" else "Edit doctor" }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}{{ "Add a doctor" if mode == "create" else "Edit doctor" }}{% endblock %}
+{% block page_subtitle %}
+  {% if mode == "create" %}
+    The login account is created at the same time as the profile
+  {% else %}
+    Editing Dr. {{ doctor.full_name }}
+  {% endif %}
+{% endblock %}
+
+{% block dashboard_content %}
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <!-- Account -->
+      <div class="hms-card mb-4">
+        <div class="hms-card-header">
+          <div>
+            <h2 class="hms-card-title">Account &amp; contact</h2>
+            <p class="hms-card-sub">Used to sign in and to reach the doctor</p>
+          </div>
+        </div>
+        <div class="hms-card-body">
+          <div class="row">
+            <div class="col-md-6">{{ render_field(form.full_name, placeholder="e.g. Ananya Sharma", autocomplete="name") }}</div>
+            <div class="col-md-6">{{ render_field(form.email, placeholder="doctor@hospital.org", autocomplete="email") }}</div>
+            <div class="col-md-6">{{ render_field(form.phone, placeholder="9876543210", autocomplete="tel", help_text="Optional, but recommended.") }}</div>
+            <div class="col-md-6">{{ render_field(form.room_no, placeholder="e.g. 204") }}</div>
+          </div>
+
+          {% if mode == "create" %}
+            <hr class="my-3">
+            <p class="form-section-title">Login credentials</p>
+
+            {% for option in form.password_mode %}
+              <div class="form-check mb-1">
+                {{ option(class="form-check-input") }}
+                {{ option.label(class="form-check-label") }}
+              </div>
+            {% endfor %}
+            {% for error in form.password_mode.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+
+            <div id="manualPasswordFields" class="row mt-2">
+              <div class="col-md-6">
+                {{ render_field(form.password, placeholder="At least 8 characters", autocomplete="new-password") }}
+              </div>
+              <div class="col-md-6">
+                {{ render_field(form.confirm_password, placeholder="Repeat the password", autocomplete="new-password") }}
+              </div>
+            </div>
+            <p class="form-text mb-0">
+              A generated password is shown once on the profile page after saving &mdash;
+              copy it and hand it to the doctor. Only its hash is stored.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Professional -->
+      <div class="hms-card mb-4">
+        <div class="hms-card-header">
+          <div>
+            <h2 class="hms-card-title">Professional details</h2>
+            <p class="hms-card-sub">Department, specialization and consultation settings</p>
+          </div>
+        </div>
+        <div class="hms-card-body">
+          <div class="row">
+            <div class="col-md-6">{{ render_field(form.department_id, help_text="Departments can be managed from the Departments page.") }}</div>
+            <div class="col-md-6">
+              {{ render_field(form.specialization, placeholder="e.g. Interventional Cardiology", list_id="specializationOptions") }}
+              <datalist id="specializationOptions">
+                {% for item in specializations %}<option value="{{ item }}"></option>{% endfor %}
+              </datalist>
+            </div>
+            <div class="col-md-6">{{ render_field(form.qualifications, placeholder="e.g. MBBS, MD (Cardiology)") }}</div>
+            <div class="col-md-6">{{ render_field(form.license_no, placeholder="e.g. MCI-12345") }}</div>
+            <div class="col-md-4">{{ render_field(form.experience_years, placeholder="8") }}</div>
+            <div class="col-md-4">{{ render_field(form.consultation_fee, placeholder="750.00") }}</div>
+            <div class="col-md-4 d-flex align-items-end">
+              <div class="form-check mb-3">
+                {{ form.is_available(class="form-check-input") }}
+                {{ form.is_available.label(class="form-check-label") }}
+                <div class="form-text">Uncheck to hide this doctor from new bookings.</div>
+              </div>
+            </div>
+          </div>
+
+          {{ render_field(form.bio, placeholder="Short professional summary shown on the doctor profile", help_text="Optional. Up to 2000 characters.") }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="col-xl-4">
+      <div class="hms-card">
+        <div class="hms-card-header">
+          <h2 class="hms-card-title">Save</h2>
+        </div>
+        <div class="hms-card-body">
+          {{ form.submit(class="btn btn-hms w-100") }}
+          <a href="{{ url_for('admin.doctor_view', doctor_id=doctor.id) if mode == 'edit' else url_for('admin.doctors') }}"
+             class="btn btn-outline-hms w-100 mt-2">Cancel</a>
+
+          <hr class="my-3">
+          <p class="form-text mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            Deactivating an account keeps every appointment and treatment record.
+            Deleting is only offered for doctors with no history.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    /* Show the password fields only when the admin chooses "set it myself". */
+    (function () {
+      var panel = document.getElementById("manualPasswordFields");
+      if (!panel) return;
+
+      var sync = function () {
+        var checked = document.querySelector('input[name="password_mode"]:checked');
+        panel.classList.toggle("d-none", !checked || checked.value !== "manual");
+      };
+
+      document.querySelectorAll('input[name="password_mode"]').forEach(function (radio) {
+        radio.addEventListener("change", sync);
+      });
+      sync();
+    })();
+  </script>
+{% endblock %}

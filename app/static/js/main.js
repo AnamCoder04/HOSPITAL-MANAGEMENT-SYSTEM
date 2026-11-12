@@ -98,5 +98,42 @@
     window.addEventListener("resize", function () {
       if (isDesktop()) closeSidebar();
     });
+
+    /* 5. Generic confirmation modal.
+       Any button with data-confirm-form="#someForm" opens the modal, then
+       submits that form (which carries its own CSRF token). */
+    var confirmModalEl = document.getElementById("confirmActionModal");
+    if (confirmModalEl && window.bootstrap) {
+      var confirmModal = new window.bootstrap.Modal(confirmModalEl);
+      var confirmTitle = document.getElementById("confirmActionTitle");
+      var confirmText = document.getElementById("confirmActionText");
+      var confirmSubmit = document.getElementById("confirmActionSubmit");
+      var pendingForm = null;
+
+      document.querySelectorAll("[data-confirm-form]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          pendingForm = document.querySelector(btn.dataset.confirmForm);
+          if (!pendingForm) return;
+
+          confirmTitle.textContent = btn.dataset.confirmTitle || "Are you sure?";
+          confirmText.textContent = btn.dataset.confirmText || "";
+          confirmSubmit.textContent = btn.dataset.confirmButton || "Confirm";
+          confirmSubmit.className = "btn btn-" + (btn.dataset.confirmTone || "danger");
+          confirmModal.show();
+        });
+      });
+
+      if (confirmSubmit) {
+        confirmSubmit.addEventListener("click", function () {
+          if (!pendingForm) return;
+          confirmModal.hide();
+          if (typeof pendingForm.requestSubmit === "function") {
+            pendingForm.requestSubmit();
+          } else {
+            pendingForm.submit();
+          }
+        });
+      }
+    }
   });
 })();

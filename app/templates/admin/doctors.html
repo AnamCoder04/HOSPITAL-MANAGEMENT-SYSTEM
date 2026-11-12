@@ -3,19 +3,45 @@
 
 {% block title %}Doctors &middot; {{ hospital_name }}{% endblock %}
 {% block page_title %}Doctors{% endblock %}
-{% block page_subtitle %}{{ doctors|length }} doctor profile{{ "" if doctors|length == 1 else "s" }} on record{% endblock %}
+{% block page_subtitle %}Manage doctor accounts and profiles{% endblock %}
 
 {% block dashboard_content %}
 <div class="hms-card">
   <div class="hms-card-header">
     <div>
       <h2 class="hms-card-title">All doctors</h2>
-      <p class="hms-card-sub">Profiles created by the administrator</p>
+      <p class="hms-card-sub">
+        Showing {{ doctors|length }} of {{ total_doctors }} doctor profile{{ "" if total_doctors == 1 else "s" }}
+      </p>
     </div>
-    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-hms btn-sm">
-      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    <a href="{{ url_for('admin.doctor_create') }}" class="btn btn-hms btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Add doctor
     </a>
   </div>
+
+  <!-- Search & filter -->
+  <form class="filter-bar" method="get" action="{{ url_for('admin.doctors') }}">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label" for="doctorSearch">Search by name</label>
+        <input class="form-control" type="search" id="doctorSearch" name="q"
+               value="{{ search_name }}" placeholder="e.g. Sharma">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="doctorSpecialization">Specialization</label>
+        <select class="form-select" id="doctorSpecialization" name="specialization">
+          <option value="">All specializations</option>
+          {% for item in specializations %}
+            <option value="{{ item }}" {{ "selected" if item == selected_specialization }}>{{ item }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-hms w-100"><i class="bi bi-search me-1"></i>Search</button>
+        <a href="{{ url_for('admin.doctors') }}" class="btn btn-outline-hms">Reset</a>
+      </div>
+    </div>
+  </form>
 
   {% if doctors %}
     <div class="table-responsive">
@@ -25,9 +51,10 @@
             <th scope="col">Doctor</th>
             <th scope="col">Specialization</th>
             <th scope="col">Department</th>
-            <th scope="col">Experience</th>
+            <th scope="col">Exp.</th>
             <th scope="col">Fee</th>
-            <th scope="col" class="text-end">Status</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -41,14 +68,67 @@
               <td>{{ doctor.department.name }}</td>
               <td class="text-nowrap">{{ doctor.experience_years }} yr</td>
               <td class="text-nowrap">&#8377;{{ "%.2f"|format(doctor.consultation_fee) }}</td>
-              <td class="text-end">{{ account_badge(doctor.user) }}</td>
+              <td>{{ account_badge(doctor.user) }}</td>
+              <td class="text-end">
+                <div class="table-actions">
+                  <a href="{{ url_for('admin.doctor_view', doctor_id=doctor.id) }}"
+                     class="btn btn-sm btn-outline-hms" title="View profile">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="{{ url_for('admin.doctor_edit', doctor_id=doctor.id) }}"
+                     class="btn btn-sm btn-outline-hms" title="Edit doctor">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+
+                  {# Each action is its own CSRF-protected form, submitted
+                     through the shared confirmation modal. #}
+                  <form id="toggle-doctor-{{ doctor.id }}" method="post"
+                        action="{{ url_for('admin.doctor_toggle', doctor_id=doctor.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  </form>
+                  <button type="button" class="btn btn-sm btn-outline-hms"
+                          title="{{ 'Deactivate account' if doctor.user.is_active else 'Activate account' }}"
+                          data-confirm-form="#toggle-doctor-{{ doctor.id }}"
+                          data-confirm-title="{{ 'Deactivate doctor?' if doctor.user.is_active else 'Activate doctor?' }}"
+                          data-confirm-text="{{ 'Dr. ' ~ doctor.full_name ~ ' will no longer be able to sign in. Existing appointments and records stay untouched.' if doctor.user.is_active else 'Dr. ' ~ doctor.full_name ~ ' will be able to sign in again.' }}"
+                          data-confirm-button="{{ 'Deactivate' if doctor.user.is_active else 'Activate' }}"
+                          data-confirm-tone="{{ 'warning' if doctor.user.is_active else 'success' }}">
+                    <i class="bi {{ 'bi-pause-circle' if doctor.user.is_active else 'bi-play-circle' }}"></i>
+                  </button>
+
+                  {% if doctor.id in busy_ids %}
+                    <button type="button" class="btn btn-sm btn-outline-hms" disabled
+                            title="Has appointment history - deactivate instead">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  {% else %}
+                    <form id="delete-doctor-{{ doctor.id }}" method="post"
+                          action="{{ url_for('admin.doctor_delete', doctor_id=doctor.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                            title="Delete doctor"
+                            data-confirm-form="#delete-doctor-{{ doctor.id }}"
+                            data-confirm-title="Delete doctor?"
+                            data-confirm-text="Dr. {{ doctor.full_name }} has no appointments or treatments, so the account and profile will be removed permanently."
+                            data-confirm-button="Delete"
+                            data-confirm-tone="danger">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+  {% elif search_name or selected_specialization %}
+    {{ empty_state("No doctors match your search", "Try a different name or clear the filters.", "bi-search") }}
   {% else %}
-    {{ empty_state("No doctors yet", "Doctor accounts are created by the administrator; they will be listed here.", "bi-person-badge") }}
+    {{ empty_state("No doctors yet", "Add the first doctor to start booking appointments.", "bi-person-badge") }}
   {% endif %}
 </div>
+
+{% include "partials/_confirm_modal.html" %}
 {% endblock %}

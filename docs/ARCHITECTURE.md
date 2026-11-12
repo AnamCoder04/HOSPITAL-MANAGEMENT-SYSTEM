@@ -232,6 +232,7 @@ One-to-many with `doctor`.
 | user_id | Integer | FK user.id, UNIQUE, NOT NULL, ondelete CASCADE |
 | department_id | Integer | FK department.id, NOT NULL |
 | specialization | String(100) | NOT NULL |
+| qualifications | String(200) | nullable (e.g. MBBS, MD) |
 | license_no | String(40) | UNIQUE, NOT NULL |
 | experience_years | Integer | NOT NULL, CHECK >= 0 |
 | consultation_fee | Numeric(8,2) | NOT NULL, CHECK >= 0 |

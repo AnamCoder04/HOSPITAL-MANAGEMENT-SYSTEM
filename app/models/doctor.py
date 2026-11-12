@@ -38,6 +38,7 @@ class Doctor(TimestampMixin, db.Model):
     )
 
     specialization = db.Column(db.String(100), nullable=False, index=True)
+    qualifications = db.Column(db.String(200))  # e.g. MBBS, MD (Cardiology)
     license_no = db.Column(db.String(40), nullable=False, unique=True)
     experience_years = db.Column(db.Integer, nullable=False, default=0)
     consultation_fee = db.Column(db.Numeric(8, 2), nullable=False, default=Decimal("0.00"))

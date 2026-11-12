@@ -1381,3 +1381,64 @@ body.sidebar-open {
     font-size: 0.7rem;
   }
 }
+
+/* ==========================================================================
+   14. Admin CRUD screens
+   ========================================================================== */
+.filter-bar {
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--hms-border);
+  background: #fbfcfe;
+}
+
+.filter-bar .form-label {
+  font-size: 0.78rem;
+}
+
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.table-actions form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.table-actions .btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.profile-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--hms-blue), var(--hms-teal));
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.form-section-title {
+  margin-bottom: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hms-muted);
+}

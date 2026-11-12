@@ -37,6 +37,7 @@ def ensure_database(app: Flask) -> None:
     """Create tables and seed the minimum data the app needs to run."""
     with app.app_context():
         db.create_all()
+        ensure_schema_upgrades(app)
 
         admin = ensure_admin(app)
         created_departments = ensure_departments()
@@ -46,6 +47,27 @@ def ensure_database(app: Flask) -> None:
             admin.email if admin else "missing",
             created_departments,
         )
+
+
+def ensure_schema_upgrades(app: Flask) -> None:
+    """Add columns introduced after a database was first created.
+
+    `db.create_all()` only creates *missing tables*; it never alters an
+    existing one. SQLite supports `ALTER TABLE ... ADD COLUMN`, so a small
+    additive upgrade keeps an existing database usable without a migration
+    tool. Destructive changes would need Flask-Migrate.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    if "doctors" not in inspector.get_table_names():
+        return  # brand-new database: create_all already built the full schema
+
+    doctor_columns = {column["name"] for column in inspector.get_columns("doctors")}
+    if "qualifications" not in doctor_columns:
+        db.session.execute(text("ALTER TABLE doctors ADD COLUMN qualifications VARCHAR(200)"))
+        db.session.commit()
+        app.logger.info("Schema upgrade: added doctors.qualifications")
 
 
 def ensure_admin(app: Flask) -> User | None:

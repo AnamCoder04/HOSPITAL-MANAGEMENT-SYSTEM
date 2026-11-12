@@ -1,0 +1,210 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import stat_card, status_badge, empty_state, account_badge with context %}
+
+{% block title %}Dr. {{ doctor.full_name }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Doctor profile{% endblock %}
+{% block page_subtitle %}{{ doctor.specialization }} &middot; {{ doctor.department.name }}{% endblock %}
+
+{% block dashboard_content %}
+{% if credentials %}
+  <div class="alert alert-warning d-flex align-items-start gap-2" role="alert">
+    <i class="bi bi-key-fill fs-5"></i>
+    <div>
+      <strong>Generated password for this doctor (shown once):</strong>
+      <code class="ms-1">{{ credentials.password }}</code>
+      <div class="small mt-1">Copy it now and share it securely. Only the hash is stored, so it cannot be shown again.</div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Profile header -->
+<div class="hms-card mb-4">
+  <div class="hms-card-body">
+    <div class="profile-header">
+      <div class="profile-avatar">{{ doctor.user.initials }}</div>
+      <div class="flex-grow-1 min-w-0">
+        <h2 class="h4 mb-1">Dr. {{ doctor.full_name }}</h2>
+        <p class="text-muted-2 mb-1">
+          {{ doctor.specialization }} &middot; {{ doctor.department.name }}
+          {% if doctor.room_no %}&middot; Room {{ doctor.room_no }}{% endif %}
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          {{ account_badge(doctor.user) }}
+          <span class="badge {{ 'badge-soft-blue' if doctor.is_available else 'badge-soft-amber' }}">
+            {{ "Accepting bookings" if doctor.is_available else "Bookings off" }}
+          </span>
+          <span class="badge badge-soft-teal">{{ doctor.experience_years }} years experience</span>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('admin.doctor_edit', doctor_id=doctor.id) }}" class="btn btn-hms btn-sm">
+          <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+
+        <form id="toggleDoctorForm" method="post" action="{{ url_for('admin.doctor_toggle', doctor_id=doctor.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+        <button type="button"
+                class="btn btn-sm {{ 'btn-outline-hms' if doctor.user.is_active else 'btn-teal' }}"
+                data-confirm-form="#toggleDoctorForm"
+                data-confirm-title="{{ 'Deactivate doctor?' if doctor.user.is_active else 'Activate doctor?' }}"
+                data-confirm-text="{{ 'Dr. ' ~ doctor.full_name ~ ' will no longer be able to sign in. Appointments and medical records stay intact.' if doctor.user.is_active else 'Dr. ' ~ doctor.full_name ~ ' will be able to sign in again.' }}"
+                data-confirm-button="{{ 'Deactivate' if doctor.user.is_active else 'Activate' }}"
+                data-confirm-tone="{{ 'warning' if doctor.user.is_active else 'success' }}">
+          <i class="bi {{ 'bi-pause-circle' if doctor.user.is_active else 'bi-play-circle' }} me-1"></i>
+          {{ "Deactivate" if doctor.user.is_active else "Activate" }}
+        </button>
+
+        {% if can_delete %}
+          <form id="deleteDoctorForm" method="post" action="{{ url_for('admin.doctor_delete', doctor_id=doctor.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          </form>
+          <button type="button" class="btn btn-sm btn-outline-danger"
+                  data-confirm-form="#deleteDoctorForm"
+                  data-confirm-title="Delete doctor?"
+                  data-confirm-text="This doctor has no appointments or treatments. The account and profile will be removed permanently."
+                  data-confirm-button="Delete"
+                  data-confirm-tone="danger">
+            <i class="bi bi-trash me-1"></i>Delete
+          </button>
+        {% else %}
+          <button type="button" class="btn btn-sm btn-outline-danger" disabled
+                  title="This doctor has {{ history.appointments }} appointment(s) and {{ history.treatments }} treatment record(s) - deactivate instead">
+            <i class="bi bi-trash me-1"></i>Delete
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Statistics -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">{{ stat_card("Appointments", stats.completed + stats.upcoming + stats.cancelled, "bi-calendar2-check", "blue", "All time") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Upcoming", stats.upcoming, "bi-calendar2-week", "amber", "Booked from today") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Completed", stats.completed, "bi-check2-circle", "teal", "Consultations done") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Patients", stats.patients, "bi-people", "red", "Distinct patients") }}</div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <!-- Details -->
+    <div class="hms-card mb-4">
+      <div class="hms-card-header"><h2 class="hms-card-title">Details</h2></div>
+      <div class="hms-card-body">
+        <div class="row">
+          <div class="col-sm-6">
+            <dl class="detail-list px-0">
+              <dt>Email</dt><dd>{{ doctor.email }}</dd>
+              <dt>Phone</dt><dd>{{ doctor.phone or "—" }}</dd>
+              <dt>Room</dt><dd>{{ doctor.room_no or "—" }}</dd>
+              <dt>Consultation fee</dt><dd>&#8377;{{ "%.2f"|format(doctor.consultation_fee) }}</dd>
+            </dl>
+          </div>
+          <div class="col-sm-6">
+            <dl class="detail-list px-0">
+              <dt>Licence number</dt><dd>{{ doctor.license_no }}</dd>
+              <dt>Qualifications</dt><dd>{{ doctor.qualifications or "—" }}</dd>
+              <dt>Experience</dt><dd>{{ doctor.experience_years }} years</dd>
+              <dt>Joined</dt><dd>{{ doctor.created_at.strftime("%d %b %Y") }}</dd>
+            </dl>
+          </div>
+        </div>
+        {% if doctor.bio %}
+          <hr>
+          <p class="mb-0 text-muted-2">{{ doctor.bio }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Recent appointments -->
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Recent appointments</h2>
+          <p class="hms-card-sub">Latest bookings with this doctor</p>
+        </div>
+      </div>
+
+      {% if recent_appointments %}
+        <div class="table-responsive">
+          <table class="table hms-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Time</th>
+                <th scope="col">Patient</th>
+                <th scope="col" class="text-end">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for appointment in recent_appointments %}
+                <tr>
+                  <td class="text-nowrap">{{ appointment.appointment_date.strftime("%d %b %Y") }}</td>
+                  <td class="text-nowrap">{{ appointment.appointment_time.strftime("%H:%M") }}</td>
+                  <td>{{ appointment.patient.full_name }}</td>
+                  <td class="text-end">{{ status_badge(appointment) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ empty_state("No appointments yet", "Bookings with this doctor will appear here.", "bi-calendar2-x") }}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <!-- Availability -->
+    <div class="hms-card mb-4">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Published availability</h2>
+          <p class="hms-card-sub">Active slots from today</p>
+        </div>
+      </div>
+
+      {% if upcoming_slots %}
+        <ul class="recent-list">
+          {% for slot in upcoming_slots %}
+            <li>
+              <span class="recent-avatar"><i class="bi bi-clock"></i></span>
+              <span class="recent-main">
+                <strong>{{ slot.available_date.strftime("%a, %d %b") }}</strong>
+                <small>{{ slot.label }}</small>
+              </span>
+              <span class="recent-meta">
+                {{ slot.booked_count }}/{{ slot.max_patients }} booked
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ empty_state("No published slots", "The doctor can add availability from their portal.", "bi-clock-history") }}
+      {% endif %}
+    </div>
+
+    <!-- History protection -->
+    <div class="hms-card">
+      <div class="hms-card-header"><h2 class="hms-card-title">Record history</h2></div>
+      <div class="hms-card-body">
+        <ul class="glance-list px-0">
+          <li><span><i class="bi bi-calendar2-check me-2 text-muted-2"></i>Appointments</span><strong>{{ history.appointments }}</strong></li>
+          <li><span><i class="bi bi-journal-medical me-2 text-muted-2"></i>Treatment records</span><strong>{{ history.treatments }}</strong></li>
+        </ul>
+        <p class="form-text mb-0 mt-2">
+          {% if can_delete %}
+            No history yet, so this profile can still be deleted.
+          {% else %}
+            This doctor has medical history, so the profile can only be deactivated &mdash; never deleted.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include "partials/_confirm_modal.html" %}
+{% endblock %}
