@@ -36,7 +36,19 @@ def create_app(config_name: str | None = None) -> Flask:
     # 3. Blueprints -------------------------------------------------------
     register_blueprints(app)
 
-    # 4. Template globals / context processors ----------------------------
+    # 4. CLI commands -----------------------------------------------------
+    from app.cli import register_cli
+
+    register_cli(app)
+
+    # 5. Database ---------------------------------------------------------
+    # Creates any missing tables, the default admin and the starter
+    # departments. Idempotent, so it is safe on every start.
+    from app.utils.bootstrap import ensure_database
+
+    ensure_database(app)
+
+    # 6. Template globals / context processors ----------------------------
     register_template_context(app)
 
     return app

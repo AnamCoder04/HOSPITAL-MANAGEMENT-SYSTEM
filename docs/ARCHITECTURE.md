@@ -27,7 +27,7 @@ SQLite database.
 | Database | SQLite (file at `instance/hms.sqlite3`, created programmatically) |
 | ORM | Flask-SQLAlchemy |
 | Auth | Flask-Login |
-| Password security | Werkzeug `generate_password_hash` / `check_password_hash` (PBKDF2-SHA256) |
+| Password security | Werkzeug `generate_password_hash` / `check_password_hash` (scrypt in Werkzeug 3, PBKDF2 fallback — never plain text) |
 | Forms & validation | Flask-WTF / WTForms (CSRF + server-side) and HTML5 attributes |
 | Charts | Chart.js (optional, dashboards only) |
 
@@ -278,7 +278,7 @@ dates restricted to today .. today + 7 by the service layer.
 | availability_id | FK doctor_availability.id, nullable |
 | appointment_date | Date | NOT NULL |
 | appointment_time | Time | NOT NULL |
-| status | String(12) | NOT NULL, default 'pending', CHECK in ('pending','confirmed','completed','cancelled') |
+| status | String(12) | NOT NULL, default 'booked', CHECK in ('booked','completed','cancelled') |
 | reason | Text | nullable |
 | cancel_reason | Text | nullable |
 | booked_at | DateTime | default utcnow |

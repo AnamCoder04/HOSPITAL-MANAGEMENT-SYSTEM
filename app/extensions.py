@@ -9,6 +9,8 @@ imports the models.
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 
 # ORM: models -> tables in SQLite
 db = SQLAlchemy()
@@ -18,6 +20,18 @@ login_manager = LoginManager()
 
 # CSRF token protection for every POSTed form
 csrf = CSRFProtect()
+
+
+# --- SQLite: enforce foreign keys --------------------------------------------
+# SQLite ignores FOREIGN KEY constraints unless this pragma is switched on for
+# every connection. Without it, deleting a user would leave orphaned doctor /
+# patient / appointment rows behind.
+@event.listens_for(Engine, "connect")
+def _enable_sqlite_foreign_keys(dbapi_connection, connection_record) -> None:
+    if dbapi_connection.__class__.__module__.startswith("sqlite3"):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 # --- Flask-Login defaults ---------------------------------------------------
@@ -30,15 +44,7 @@ login_manager.session_protection = "strong"
 
 
 # --- Flask-Login user loader ------------------------------------------------
-# Flask-Login registers a context processor that resolves `current_user` on
-# EVERY template render, so a user_loader must exist even before anyone can
-# log in. Task 3 replaces the body below with the real database lookup:
-#
-#     from app.models import User
-#     return db.session.get(User, int(user_id))
-#
-# Returning None simply means "no user is logged in", which is exactly the
-# state we want until authentication is implemented in Task 4.
-@login_manager.user_loader
-def load_user(user_id: str):
-    return None
+# The @login_manager.user_loader callback lives next to the User model, in
+# app/models/user.py, because it needs to query the users table. Flask-Login
+# also registers a context processor that resolves `current_user` on every
+# template render, so that callback must exist for any page to render.
