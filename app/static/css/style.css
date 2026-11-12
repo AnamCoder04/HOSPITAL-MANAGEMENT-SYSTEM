@@ -473,3 +473,266 @@ a:hover {
     margin-top: 0.5rem;
   }
 }
+
+/* ==========================================================================
+   9. Forms
+   ========================================================================== */
+.form-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--hms-text);
+  margin-bottom: 0.35rem;
+}
+
+.form-control,
+.form-select {
+  border-radius: 10px;
+  border-color: var(--hms-border);
+  padding: 0.62rem 0.8rem;
+  font-size: 0.93rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--hms-blue);
+  box-shadow: 0 0 0 0.2rem rgba(29, 111, 216, 0.12);
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--hms-red);
+}
+
+.invalid-feedback {
+  font-size: 0.8rem;
+}
+
+.form-text {
+  font-size: 0.78rem;
+  color: var(--hms-muted);
+}
+
+.password-toggle {
+  border-color: var(--hms-border);
+  color: var(--hms-muted);
+  border-radius: 0 10px 10px 0;
+  background-color: #fff;
+}
+
+.password-toggle:hover {
+  background-color: var(--hms-blue-50);
+  color: var(--hms-blue);
+}
+
+/* ==========================================================================
+   10. Authentication screens
+   ========================================================================== */
+.page-auth {
+  background-color: #fff;
+}
+
+.auth-main {
+  min-height: 100vh;
+  display: flex;
+}
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  width: 100%;
+  min-height: 100vh;
+}
+
+.auth-aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(2rem, 4vw, 3.5rem);
+  color: #eaf1fb;
+  background:
+    radial-gradient(700px 400px at 15% 5%, rgba(15, 155, 142, 0.35), transparent 60%),
+    radial-gradient(600px 380px at 95% 90%, rgba(29, 111, 216, 0.45), transparent 60%),
+    var(--hms-sidebar);
+  overflow: hidden;
+}
+
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: #fff;
+}
+
+.auth-brand:hover {
+  color: #fff;
+}
+
+.auth-brand strong {
+  display: block;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.auth-brand small {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fb1c9;
+}
+
+.auth-aside-title {
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.auth-aside-text {
+  color: #c3d2e6;
+  max-width: 30rem;
+  font-size: 0.95rem;
+}
+
+.auth-points {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.auth-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.9rem;
+  color: #d6e2f1;
+}
+
+.auth-points i {
+  color: #6fd8cc;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.auth-back {
+  font-size: 0.85rem;
+  color: #9fb1c9;
+  margin-top: 2.5rem;
+}
+
+.auth-back:hover {
+  color: #fff;
+}
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background-color: #fff;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border: 1px solid var(--hms-border);
+  border-radius: 18px;
+  box-shadow: 0 18px 48px rgba(16, 24, 40, 0.08);
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.auth-eyebrow {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hms-teal);
+  margin-bottom: 0.35rem;
+}
+
+.auth-title {
+  font-size: clamp(1.35rem, 2.2vw, 1.6rem);
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.auth-sub {
+  color: var(--hms-muted);
+  font-size: 0.9rem;
+}
+
+.auth-switch {
+  font-size: 0.88rem;
+  color: var(--hms-muted);
+}
+
+.auth-note {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--hms-muted);
+  background-color: #f8fafd;
+  border: 1px solid var(--hms-border);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+}
+
+/* ==========================================================================
+   11. Dashboards and status badges
+   ========================================================================== */
+.dashboard-shell {
+  padding-top: 2.5rem;
+  padding-bottom: 3rem;
+}
+
+.badge-soft-blue {
+  background-color: var(--hms-blue-50);
+  color: var(--hms-blue-dark);
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+}
+
+.badge-soft-red {
+  background-color: #fdecec;
+  color: #b02a2a;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+}
+
+.badge-soft-amber {
+  background-color: #fff4e0;
+  color: #9a6100;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+}
+
+.denied-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background-color: #fff4e0;
+  color: var(--hms-amber);
+  font-size: 1.7rem;
+}
+
+@media (max-width: 991.98px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-aside {
+    display: none;
+  }
+
+  .auth-main {
+    align-items: flex-start;
+  }
+}

@@ -1,0 +1,20 @@
+{% macro render_field(field, placeholder="", help_text="", autocomplete="off") %}
+{#
+  One form field with label, widget, optional help text and validation errors.
+  Usage:  {{ field(form.email, placeholder="name@example.com", autocomplete="email") }}
+#}
+<div class="mb-3">
+  {{ field.label(class="form-label") }}
+  {{ field(
+      class="form-control" + (" is-invalid" if field.errors else ""),
+      placeholder=placeholder,
+      autocomplete=autocomplete
+  ) }}
+  {% if help_text %}
+    <div class="form-text">{{ help_text }}</div>
+  {% endif %}
+  {% for error in field.errors %}
+    <div class="invalid-feedback d-block">{{ error }}</div>
+  {% endfor %}
+</div>
+{% endmacro %}

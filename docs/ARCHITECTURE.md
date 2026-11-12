@@ -518,7 +518,7 @@ FLASK_APP=run.py
 FLASK_ENV=development
 SECRET_KEY=change-this-to-a-long-random-string
 ADMIN_NAME=System Administrator
-ADMIN_EMAIL=admin@hms.local
+ADMIN_EMAIL=admin@medicare-hms.com
 ADMIN_PASSWORD=Admin@12345
 DATABASE_URL=sqlite:///hms.sqlite3
 ```

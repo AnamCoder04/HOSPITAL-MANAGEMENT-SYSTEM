@@ -15,6 +15,7 @@ from datetime import datetime
 from flask import Flask
 
 from app.extensions import csrf, db, login_manager
+from app.utils.security import dashboard_url
 from config import get_config
 
 
@@ -41,6 +42,9 @@ def create_app(config_name: str | None = None) -> Flask:
 
     register_cli(app)
 
+    # 5. Error pages ------------------------------------------------------
+    register_error_handlers(app)
+
     # 5. Database ---------------------------------------------------------
     # Creates any missing tables, the default admin and the starter
     # departments. Idempotent, so it is safe on every start.
@@ -56,14 +60,17 @@ def create_app(config_name: str | None = None) -> Flask:
 
 def register_blueprints(app: Flask) -> None:
     """Attach every blueprint to the application."""
+    from app.blueprints.admin import admin_bp
+    from app.blueprints.auth import auth_bp
+    from app.blueprints.doctor import doctor_bp
     from app.blueprints.main import main_bp
+    from app.blueprints.patient import patient_bp
 
-    app.register_blueprint(main_bp)
-
-    # Task 4+ : app.register_blueprint(auth_bp)
-    # Task 6+ : app.register_blueprint(admin_bp)
-    # Task 8+ : app.register_blueprint(doctor_bp)
-    # Task 9+ : app.register_blueprint(patient_bp)
+    app.register_blueprint(main_bp)      # /            public pages
+    app.register_blueprint(auth_bp)      # /auth/*      login, register, logout
+    app.register_blueprint(admin_bp)     # /admin/*     administrator portal
+    app.register_blueprint(doctor_bp)    # /doctor/*    doctor portal
+    app.register_blueprint(patient_bp)   # /patient/*   patient portal
 
 
 def register_template_context(app: Flask) -> None:
@@ -75,4 +82,15 @@ def register_template_context(app: Flask) -> None:
             "hospital_name": app.config["HOSPITAL_NAME"],
             "hospital_tagline": app.config["HOSPITAL_TAGLINE"],
             "current_year": datetime.now().year,
+            "dashboard_url": dashboard_url,
         }
+
+
+def register_error_handlers(app: Flask) -> None:
+    """Friendly pages instead of raw HTTP errors."""
+    from flask import render_template
+    from werkzeug.exceptions import Forbidden
+
+    @app.errorhandler(403)
+    def forbidden(error: Forbidden):
+        return render_template("errors/403.html"), 403

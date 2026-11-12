@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{#
+  Split-screen layout for login and registration:
+  left = brand panel, right = the form card. Pages override `auth_content`.
+#}
+{% block body_class %}page-auth{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block main_class %}auth-main{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <aside class="auth-aside">
+    <div>
+      <a class="auth-brand" href="{{ url_for('main.index') }}">
+        <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" width="38" height="38">
+        <span>
+          <strong>{{ hospital_name }}</strong>
+          <small>Hospital Management System</small>
+        </span>
+      </a>
+
+      <h2 class="auth-aside-title mt-5">
+        One secure account,<br>every part of your care.
+      </h2>
+      <p class="auth-aside-text">
+        Appointments, doctor availability and medical records &mdash; kept together and
+        visible only to the people they belong to.
+      </p>
+
+      <ul class="auth-points">
+        <li><i class="bi bi-shield-lock"></i> Role-based access for admins, doctors and patients</li>
+        <li><i class="bi bi-calendar2-week"></i> Book from the next seven days of availability</li>
+        <li><i class="bi bi-journal-medical"></i> Diagnosis and prescriptions kept in one place</li>
+      </ul>
+    </div>
+
+    <a class="auth-back" href="{{ url_for('main.index') }}">
+      <i class="bi bi-arrow-left me-1"></i> Back to the hospital home page
+    </a>
+  </aside>
+
+  <section class="auth-panel">
+    <div class="auth-card">
+      {% block auth_content %}{% endblock %}
+    </div>
+  </section>
+</div>
+{% endblock %}

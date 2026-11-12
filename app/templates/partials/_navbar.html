@@ -20,16 +20,27 @@
         <li class="nav-item"><a class="nav-link" href="{{ url_for('main.index') }}#how-it-works">How it works</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('main.index') }}#contact">Contact</a></li>
 
-        {# These two routes arrive in Task 4 (authentication). Plain paths are
-           used for now so the page renders before the auth blueprint exists. #}
-        <li class="nav-item ms-lg-2">
-          <a class="btn btn-outline-hms btn-sm px-3" href="/auth/login">
-            <i class="bi bi-box-arrow-in-right me-1"></i> Login
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="btn btn-hms btn-sm px-3" href="/auth/register">Register</a>
-        </li>
+        {% if current_user.is_authenticated %}
+          <li class="nav-item ms-lg-2">
+            <a class="btn btn-outline-hms btn-sm px-3" href="{{ dashboard_url(current_user) }}">
+              <i class="bi bi-grid-1x2 me-1"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            {% with button_class = "btn btn-hms btn-sm px-3" %}
+              {% include "partials/_logout_form.html" %}
+            {% endwith %}
+          </li>
+        {% else %}
+          <li class="nav-item ms-lg-2">
+            <a class="btn btn-outline-hms btn-sm px-3" href="{{ url_for('auth.login') }}">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Login
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-hms btn-sm px-3" href="{{ url_for('auth.register') }}">Register</a>
+          </li>
+        {% endif %}
       </ul>
     </div>
   </div>

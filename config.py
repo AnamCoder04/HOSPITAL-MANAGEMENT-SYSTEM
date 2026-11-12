@@ -44,7 +44,9 @@ class Config:
 
     # --- Seeded administrator (created on first run, Task 3) ------------
     ADMIN_NAME = os.environ.get("ADMIN_NAME", "System Administrator")
-    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@hms.local")
+    # NOTE: use a normal domain here. Addresses on reserved domains such as
+    # .local / .test / .example are rejected by strict e-mail validators.
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@medicare-hms.com")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Admin@12345")
 
 
