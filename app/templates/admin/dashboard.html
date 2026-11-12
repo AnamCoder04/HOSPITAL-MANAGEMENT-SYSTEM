@@ -1,107 +1,194 @@
 {% extends "layouts/dashboard.html" %}
-{% from "partials/_macros.html" import stat_card, status_badge, empty_state, action_button with context %}
+{% from "partials/_macros.html" import stat_card, empty_state, account_badge, action_button with context %}
 
 {% block title %}Admin dashboard &middot; {{ hospital_name }}{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
-{% block page_subtitle %}Hospital overview for {{ today.strftime("%d %B %Y") }}{% endblock %}
+{% block page_subtitle %}Hospital overview &middot; {{ today.strftime("%d %B %Y") }}{% endblock %}
 
 {% block dashboard_content %}
-<!-- Statistic cards -->
-<div class="row g-3 g-xl-4 mb-4">
-  <div class="col-6 col-xl-3">
-    {{ stat_card("Total doctors", stats.doctors, "bi-person-badge", "blue", stats.available_doctors ~ " available for booking") }}
+<!-- 1. Statistic cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xxl-2">
+    {{ stat_card("Doctors", stats.doctors, "bi-person-badge", "blue", stats.available_doctors ~ " available") }}
   </div>
-  <div class="col-6 col-xl-3">
-    {{ stat_card("Total patients", stats.patients, "bi-people", "teal", "Registered patient accounts") }}
+  <div class="col-6 col-md-4 col-xxl-2">
+    {{ stat_card("Patients", stats.patients, "bi-people", "teal", "Registered accounts") }}
   </div>
-  <div class="col-6 col-xl-3">
-    {{ stat_card("Appointments", stats.appointments, "bi-calendar2-check", "amber", stats.booked ~ " currently booked") }}
+  <div class="col-6 col-md-4 col-xxl-2">
+    {{ stat_card("Appointments", stats.appointments, "bi-calendar2-check", "blue", "All time") }}
   </div>
-  <div class="col-6 col-xl-3">
-    {{ stat_card("Today", stats.today, "bi-clock", "red", "Appointments scheduled today") }}
+  <div class="col-6 col-md-4 col-xxl-2">
+    {{ stat_card("Upcoming", stats.upcoming, "bi-calendar2-week", "amber", "Booked from today") }}
+  </div>
+  <div class="col-6 col-md-4 col-xxl-2">
+    {{ stat_card("Completed", stats.completed, "bi-check2-circle", "teal", "Consultations done") }}
+  </div>
+  <div class="col-6 col-md-4 col-xxl-2">
+    {{ stat_card("Cancelled", stats.cancelled, "bi-x-circle", "red", "By patient or doctor") }}
   </div>
 </div>
 
-<div class="row g-4">
-  <!-- Recent appointments -->
-  <div class="col-xl-8">
+<!-- 2. Chart + recently registered patients -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-5">
     <div class="hms-card h-100">
       <div class="hms-card-header">
         <div>
-          <h2 class="hms-card-title">Recent appointments</h2>
-          <p class="hms-card-sub">Latest bookings across every doctor</p>
+          <h2 class="hms-card-title">Appointment statistics</h2>
+          <p class="hms-card-sub">Distribution by status</p>
         </div>
+        <span class="badge badge-soft-blue">{{ stats.appointments }} total</span>
       </div>
 
-      {% if appointments %}
-        <div class="table-responsive">
-          <table class="table hms-table align-middle mb-0">
-            <thead>
-              <tr>
-                <th scope="col">Patient</th>
-                <th scope="col">Doctor</th>
-                <th scope="col">Date</th>
-                <th scope="col">Time</th>
-                <th scope="col" class="text-end">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for appointment in appointments %}
-                <tr>
-                  <td>
-                    <span class="d-block fw-semibold">{{ appointment.patient.full_name }}</span>
-                    <small class="text-muted-2">{{ appointment.patient.patient_code }}</small>
-                  </td>
-                  <td>
-                    <span class="d-block">Dr. {{ appointment.doctor.full_name }}</span>
-                    <small class="text-muted-2">{{ appointment.doctor.specialization }}</small>
-                  </td>
-                  <td class="text-nowrap">{{ appointment.appointment_date.strftime("%d %b %Y") }}</td>
-                  <td class="text-nowrap">{{ appointment.appointment_time.strftime("%H:%M") }}</td>
-                  <td class="text-end">{{ status_badge(appointment) }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      {% if stats.appointments %}
+        <div class="hms-card-body">
+          <div class="chart-wrap">
+            <canvas id="statusChart" role="img" aria-label="Appointments by status"></canvas>
+          </div>
         </div>
       {% else %}
-        {{ empty_state("No appointments yet", "Bookings made by patients will appear here.", "bi-calendar2-x") }}
+        {{ empty_state("No appointment data yet", "This chart fills in as soon as patients start booking.", "bi-pie-chart") }}
       {% endif %}
     </div>
   </div>
 
-  <!-- Side column -->
-  <div class="col-xl-4">
-    <div class="hms-card mb-4">
+  <div class="col-lg-7">
+    <div class="hms-card h-100">
       <div class="hms-card-header">
-        <h2 class="hms-card-title">At a glance</h2>
+        <div>
+          <h2 class="hms-card-title">Recently registered patients</h2>
+          <p class="hms-card-sub">Newest patient accounts</p>
+        </div>
+        <a href="{{ url_for('admin.patients') }}" class="btn btn-outline-hms btn-sm">
+          View all <i class="bi bi-arrow-right ms-1"></i>
+        </a>
       </div>
-      <ul class="glance-list">
-        <li>
-          <span><i class="bi bi-circle-fill glance-dot dot-booked"></i> Booked</span>
-          <strong>{{ stats.booked }}</strong>
-        </li>
-        <li>
-          <span><i class="bi bi-circle-fill glance-dot dot-completed"></i> Completed</span>
-          <strong>{{ stats.completed }}</strong>
-        </li>
-        <li>
-          <span><i class="bi bi-circle-fill glance-dot dot-cancelled"></i> Cancelled</span>
-          <strong>{{ stats.cancelled }}</strong>
-        </li>
-      </ul>
-    </div>
 
-    <div class="hms-card">
+      {% if recent_patients %}
+        <ul class="recent-list">
+          {% for patient in recent_patients %}
+            <li>
+              <span class="recent-avatar">{{ patient.user.initials }}</span>
+              <span class="recent-main">
+                <strong>{{ patient.full_name }}</strong>
+                <small>{{ patient.patient_code }} &middot; {{ patient.user.email }}</small>
+              </span>
+              <span class="recent-meta">
+                {{ patient.created_at.strftime("%d %b %Y") }}
+                <div class="mt-1">{{ account_badge(patient.user) }}</div>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ empty_state("No patients registered yet", "Patient accounts appear here as soon as they sign up.", "bi-person-plus") }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- 3. Recently added doctors + management shortcuts -->
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="hms-card h-100">
       <div class="hms-card-header">
-        <h2 class="hms-card-title">Quick actions</h2>
+        <div>
+          <h2 class="hms-card-title">Recently added doctors</h2>
+          <p class="hms-card-sub">Newest doctor profiles</p>
+        </div>
+        <a href="{{ url_for('admin.doctors') }}" class="btn btn-outline-hms btn-sm">
+          View all <i class="bi bi-arrow-right ms-1"></i>
+        </a>
       </div>
-      <div class="d-grid gap-2">
-        {{ action_button("admin.doctors", "Manage doctors", "bi-person-badge", True) }}
-        {{ action_button("admin.patients", "Manage patients", "bi-people") }}
-        {{ action_button("admin.appointments", "All appointments", "bi-calendar2-check") }}
+
+      {% if recent_doctors %}
+        <ul class="recent-list">
+          {% for doctor in recent_doctors %}
+            <li>
+              <span class="recent-avatar teal">{{ doctor.user.initials }}</span>
+              <span class="recent-main">
+                <strong>Dr. {{ doctor.full_name }}</strong>
+                <small>{{ doctor.specialization }} &middot; {{ doctor.department.name }}</small>
+              </span>
+              <span class="recent-meta">
+                {{ doctor.created_at.strftime("%d %b %Y") }}
+                <div class="mt-1">{{ account_badge(doctor.user) }}</div>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ empty_state("No doctors added yet", "Doctor profiles created by the administrator appear here.", "bi-person-badge") }}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="hms-card h-100">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Management shortcuts</h2>
+          <p class="hms-card-sub">Jump straight to a management page</p>
+        </div>
+      </div>
+      <div class="hms-card-body d-grid gap-2">
+        {{ action_button("admin.doctors", "Doctors", "bi-person-badge", True) }}
+        {{ action_button("admin.departments", "Departments", "bi-diagram-3") }}
+        {{ action_button("admin.patients", "Patients", "bi-people") }}
+        {{ action_button("admin.appointments", "Appointments", "bi-calendar2-check") }}
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <!-- Chart.js is loaded only on this page -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+          integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      var canvas = document.getElementById("statusChart");
+      if (!canvas || !window.Chart) return;
+
+      var payload = {{ chart_data|tojson }};
+
+      new Chart(canvas, {
+        type: "doughnut",
+        data: {
+          labels: payload.labels,
+          datasets: [{
+            data: payload.values,
+            backgroundColor: ["#1d6fd8", "#0f9b8e", "#d64545"],
+            borderWidth: 0,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "62%",
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                usePointStyle: true,
+                boxWidth: 8,
+                padding: 16,
+                font: { family: "Inter, system-ui, sans-serif", size: 12 }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  return " " + ctx.label + ": " + ctx.parsed;
+                }
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
 {% endblock %}

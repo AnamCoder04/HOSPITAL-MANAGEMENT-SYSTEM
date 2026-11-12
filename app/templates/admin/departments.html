@@ -1,0 +1,49 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import empty_state with context %}
+
+{% block title %}Departments &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Departments{% endblock %}
+{% block page_subtitle %}{{ departments|length }} department{{ "" if departments|length == 1 else "s" }} in the hospital{% endblock %}
+
+{% block dashboard_content %}
+<div class="hms-card">
+  <div class="hms-card-header">
+    <div>
+      <h2 class="hms-card-title">All departments</h2>
+      <p class="hms-card-sub">Seeded at start-up and managed by the administrator</p>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-hms btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  {% if departments %}
+    <div class="table-responsive">
+      <table class="table hms-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Department</th>
+            <th scope="col">Description</th>
+            <th scope="col" class="text-end">Doctors</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for department in departments %}
+            <tr>
+              <td class="fw-semibold text-nowrap">{{ department.name }}</td>
+              <td class="text-muted-2">{{ department.description or "—" }}</td>
+              <td class="text-end">
+                <span class="badge {{ 'badge-soft-blue' if department.doctor_count else 'badge-soft-amber' }}">
+                  {{ department.doctor_count }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {{ empty_state("No departments", "Departments are seeded when the application starts.", "bi-diagram-3") }}
+  {% endif %}
+</div>
+{% endblock %}

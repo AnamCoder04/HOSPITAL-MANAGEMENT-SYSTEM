@@ -1,0 +1,54 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import empty_state, account_badge with context %}
+
+{% block title %}Patients &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Patients{% endblock %}
+{% block page_subtitle %}{{ patients|length }} patient account{{ "" if patients|length == 1 else "s" }} on record{% endblock %}
+
+{% block dashboard_content %}
+<div class="hms-card">
+  <div class="hms-card-header">
+    <div>
+      <h2 class="hms-card-title">All patients</h2>
+      <p class="hms-card-sub">Newest registrations first</p>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-hms btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  {% if patients %}
+    <div class="table-responsive">
+      <table class="table hms-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Patient ID</th>
+            <th scope="col">Patient</th>
+            <th scope="col">Contact</th>
+            <th scope="col">Gender</th>
+            <th scope="col">Registered</th>
+            <th scope="col" class="text-end">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for patient in patients %}
+            <tr>
+              <td class="text-nowrap fw-semibold">{{ patient.patient_code }}</td>
+              <td>
+                <span class="d-block">{{ patient.full_name }}</span>
+                <small class="text-muted-2">{{ patient.email }}</small>
+              </td>
+              <td class="text-nowrap">{{ patient.phone or "—" }}</td>
+              <td>{{ patient.gender or "—" }}</td>
+              <td class="text-nowrap">{{ patient.created_at.strftime("%d %b %Y") }}</td>
+              <td class="text-end">{{ account_badge(patient.user) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {{ empty_state("No patients yet", "Patients appear here after they create an account.", "bi-people") }}
+  {% endif %}
+</div>
+{% endblock %}

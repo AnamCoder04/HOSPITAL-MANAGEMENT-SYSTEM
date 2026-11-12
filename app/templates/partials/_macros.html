@@ -21,6 +21,18 @@
 {% endmacro %}
 
 
+{% macro account_badge(user) %}
+  {# Account state, not appointment state: active / inactive / blacklisted. #}
+  {% if user.is_blacklisted %}
+    <span class="badge badge-soft-red">Blacklisted</span>
+  {% elif not user.is_active %}
+    <span class="badge badge-soft-amber">Inactive</span>
+  {% else %}
+    <span class="badge badge-soft-teal">Active</span>
+  {% endif %}
+{% endmacro %}
+
+
 {% macro empty_state(title, message, icon="bi-inbox") %}
   <div class="empty-state">
     <div class="empty-icon"><i class="bi {{ icon }}"></i></div>

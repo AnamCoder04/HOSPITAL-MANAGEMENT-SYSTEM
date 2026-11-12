@@ -1,7 +1,8 @@
 """Dashboard aggregates.
 
 Every number shown on a dashboard comes from here, so the views stay thin and
-the queries live in one testable place.
+the queries live in one testable place. Nothing is hard-coded: each value is a
+SQLAlchemy query against the live SQLite database.
 """
 
 from __future__ import annotations
@@ -33,7 +34,30 @@ def admin_dashboard_stats() -> dict:
         "booked": status_counts.get(AppointmentStatus.BOOKED, 0),
         "completed": status_counts.get(AppointmentStatus.COMPLETED, 0),
         "cancelled": status_counts.get(AppointmentStatus.CANCELLED, 0),
+        # "Upcoming" = still booked and not in the past.
+        "upcoming": Appointment.query.filter(
+            Appointment.status == AppointmentStatus.BOOKED,
+            Appointment.appointment_date >= today,
+        ).count(),
     }
+
+
+def appointment_status_chart(stats: dict) -> dict:
+    """Chart.js payload for the appointment-status doughnut."""
+    return {
+        "labels": ["Booked", "Completed", "Cancelled"],
+        "values": [stats["booked"], stats["completed"], stats["cancelled"]],
+    }
+
+
+def recent_patients(limit: int = 5) -> list[Patient]:
+    """Newest patient accounts, by registration time."""
+    return Patient.query.order_by(Patient.created_at.desc()).limit(limit).all()
+
+
+def recent_doctors(limit: int = 5) -> list[Doctor]:
+    """Newest doctor profiles, by creation time."""
+    return Doctor.query.order_by(Doctor.created_at.desc()).limit(limit).all()
 
 
 def doctor_dashboard_stats(doctor: Doctor) -> dict:
@@ -70,18 +94,6 @@ def patient_dashboard_stats(patient: Patient) -> dict:
         "cancelled": base.filter_by(status=AppointmentStatus.CANCELLED).count(),
         "total": base.count(),
     }
-
-
-def recent_appointments(limit: int = 6) -> list[Appointment]:
-    """Newest bookings first, for the administrator dashboard."""
-    return (
-        Appointment.query.order_by(
-            Appointment.appointment_date.desc(),
-            Appointment.appointment_time.desc(),
-        )
-        .limit(limit)
-        .all()
-    )
 
 
 def todays_appointments_for_doctor(doctor: Doctor, limit: int = 8) -> list[Appointment]:
