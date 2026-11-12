@@ -1,0 +1,93 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_field.html" import render_field %}
+
+{% block title %}Edit {{ patient.full_name }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Edit patient{% endblock %}
+{% block page_subtitle %}{{ patient.full_name }} &middot; {{ patient.patient_code }}{% endblock %}
+
+{% block dashboard_content %}
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <!-- Account -->
+      <div class="hms-card mb-4">
+        <div class="hms-card-header">
+          <div>
+            <h2 class="hms-card-title">Account &amp; contact</h2>
+            <p class="hms-card-sub">Used to sign in and to reach the patient</p>
+          </div>
+        </div>
+        <div class="hms-card-body">
+          <div class="row">
+            <div class="col-md-6">{{ render_field(form.full_name, placeholder="e.g. Rohit Verma", autocomplete="name") }}</div>
+            <div class="col-md-6">{{ render_field(form.email, placeholder="patient@example.com", autocomplete="email") }}</div>
+            <div class="col-md-6">{{ render_field(form.phone, placeholder="9876543210", autocomplete="tel") }}</div>
+            <div class="col-md-6">{{ render_field(form.emergency_contact, placeholder="Alternate number", help_text="Optional.") }}</div>
+          </div>
+          <p class="form-text mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            Changing the email address changes how this patient signs in.
+            Passwords are never displayed or edited here.
+          </p>
+        </div>
+      </div>
+
+      <!-- Medical profile -->
+      <div class="hms-card">
+        <div class="hms-card-header">
+          <div>
+            <h2 class="hms-card-title">Medical profile</h2>
+            <p class="hms-card-sub">Shown to the doctor during a consultation</p>
+          </div>
+        </div>
+        <div class="hms-card-body">
+          <div class="row">
+            <div class="col-md-4">{{ render_field(form.date_of_birth) }}</div>
+            <div class="col-md-4">{{ render_field(form.gender) }}</div>
+            <div class="col-md-4">{{ render_field(form.blood_group) }}</div>
+          </div>
+
+          {{ render_field(form.address, placeholder="Street, city, PIN", help_text="Optional. Up to 255 characters.") }}
+          {{ render_field(form.allergies, placeholder="e.g. Penicillin, asthma", help_text="Optional. Allergies and chronic conditions.") }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="col-xl-4">
+      <div class="hms-card mb-4">
+        <div class="hms-card-header">
+          <h2 class="hms-card-title">Save</h2>
+        </div>
+        <div class="hms-card-body">
+          {{ form.submit(class="btn btn-hms w-100") }}
+          <a href="{{ url_for('admin.patient_view', patient_id=patient.id) }}"
+             class="btn btn-outline-hms w-100 mt-2">Cancel</a>
+        </div>
+      </div>
+
+      <div class="hms-card">
+        <div class="hms-card-header">
+          <h2 class="hms-card-title">Record</h2>
+        </div>
+        <div class="hms-card-body">
+          <dl class="detail-list px-0">
+            <dt>Patient ID</dt><dd>{{ patient.patient_code }}</dd>
+            <dt>Registered</dt><dd>{{ patient.created_at.strftime("%d %b %Y") }}</dd>
+          </dl>
+          <ul class="glance-list px-0">
+            <li><span><i class="bi bi-calendar2-check me-2 text-muted-2"></i>Appointments</span><strong>{{ history.appointments }}</strong></li>
+            <li><span><i class="bi bi-journal-medical me-2 text-muted-2"></i>Treatment records</span><strong>{{ history.treatments }}</strong></li>
+          </ul>
+          <p class="form-text mb-0 mt-2">
+            The patient ID is fixed because appointments refer to it.
+            Medical history is never deleted.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -6,9 +6,13 @@ templates are only a convenience.
 
 from __future__ import annotations
 
+import re
+from datetime import date
+
 from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
+    DateField,
     DecimalField,
     IntegerField,
     PasswordField,
@@ -30,10 +34,26 @@ from wtforms.validators import (
 )
 
 from app.extensions import db
-from app.models import Department, Doctor, User
+from app.models import Department, Doctor, Patient, User
 
 PHONE_PATTERN = r"^\+?[0-9][0-9\s\-]{8,14}$"
 PASSWORD_PATTERN = r"^(?=.*[A-Za-z])(?=.*\d).+$"
+PATIENT_CODE_PATTERN = r"^(?:PAT-)?\d{1,9}$"
+
+GENDER_CHOICES = [
+    ("", "Not specified"),
+    ("Male", "Male"),
+    ("Female", "Female"),
+    ("Other", "Other"),
+]
+
+BLOOD_GROUP_CHOICES = [
+    ("", "Not recorded"),
+    ("A+", "A+"), ("A-", "A-"),
+    ("B+", "B+"), ("B-", "B-"),
+    ("AB+", "AB+"), ("AB-", "AB-"),
+    ("O+", "O+"), ("O-", "O-"),
+]
 
 
 def strip_whitespace(value):
@@ -41,6 +61,14 @@ def strip_whitespace(value):
     return value.strip() if isinstance(value, str) else value
 
 
+def collapse_spaces(value):
+    """Turn 'A   B' into 'A B' so the same name cannot be stored twice."""
+    return " ".join(value.split()) if isinstance(value, str) else value
+
+
+# ---------------------------------------------------------------------------
+# Doctors
+# ---------------------------------------------------------------------------
 class DoctorFormBase(FlaskForm):
     """Fields shared by 'create doctor' and 'edit doctor'."""
 
@@ -198,3 +226,121 @@ class DoctorEditForm(DoctorFormBase):
     """Edit an existing doctor (the password is not changed here)."""
 
     submit = SubmitField("Save changes")
+
+
+# ---------------------------------------------------------------------------
+# Patients
+# ---------------------------------------------------------------------------
+class PatientSearchForm(FlaskForm):
+    """GET filter form for the patient list (no CSRF: it changes nothing)."""
+
+    class Meta:
+        csrf = False
+
+    q = StringField(
+        "Search by name",
+        filters=[strip_whitespace],
+        validators=[Optional(), Length(max=120, message="Search text is too long.")],
+    )
+    patient_id = StringField(
+        "Patient ID",
+        filters=[strip_whitespace],
+        validators=[
+            Optional(),
+            Regexp(
+                PATIENT_CODE_PATTERN,
+                flags=re.IGNORECASE,
+                message="Use the format PAT-000123 (or just the number).",
+            ),
+        ],
+    )
+    phone = StringField(
+        "Contact number",
+        filters=[strip_whitespace],
+        validators=[
+            Optional(),
+            Regexp(r"^[0-9+\s\-]{3,20}$", message="Digits, spaces, + and - only."),
+        ],
+    )
+    submit = SubmitField("Search")
+
+
+class PatientEditForm(FlaskForm):
+    """Edit a patient's account and medical profile.
+
+    The patient ID is deliberately not editable: it is the identifier printed
+    on reports and referenced by appointments.
+    """
+
+    full_name = StringField(
+        "Full name",
+        filters=[strip_whitespace, collapse_spaces],
+        validators=[
+            DataRequired(message="Enter the patient's full name."),
+            Length(min=3, max=120, message="Name must be between 3 and 120 characters."),
+        ],
+    )
+    email = StringField(
+        "Email address",
+        filters=[strip_whitespace],
+        validators=[
+            DataRequired(message="Enter an email address."),
+            Email(message="Enter a valid email address."),
+            Length(max=150),
+        ],
+    )
+    phone = StringField(
+        "Contact number",
+        filters=[strip_whitespace],
+        validators=[
+            DataRequired(message="Enter a contact number."),
+            Regexp(PHONE_PATTERN, message="Enter a valid phone number (10-15 digits)."),
+        ],
+    )
+
+    date_of_birth = DateField(
+        "Date of birth",
+        format="%Y-%m-%d",
+        validators=[Optional()],
+    )
+    gender = SelectField("Gender", choices=GENDER_CHOICES, validators=[Optional()])
+    blood_group = SelectField("Blood group", choices=BLOOD_GROUP_CHOICES, validators=[Optional()])
+    address = StringField(
+        "Address",
+        filters=[strip_whitespace],
+        validators=[Optional(), Length(max=255, message="Keep the address under 255 characters.")],
+    )
+    emergency_contact = StringField(
+        "Emergency contact",
+        filters=[strip_whitespace],
+        validators=[
+            Optional(),
+            Regexp(PHONE_PATTERN, message="Enter a valid emergency phone number."),
+        ],
+    )
+    allergies = TextAreaField(
+        "Allergies / chronic conditions",
+        filters=[strip_whitespace],
+        validators=[Optional(), Length(max=1000, message="Keep this under 1000 characters.")],
+    )
+
+    submit = SubmitField("Save changes")
+
+    def __init__(self, *args, patient: Patient | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Used by the uniqueness check so a patient keeps their own email.
+        self.patient = patient
+
+    def validate_email(self, field: StringField) -> None:
+        existing = User.query.filter_by(email=field.data.lower()).first()
+        if existing and (self.patient is None or existing.id != self.patient.user_id):
+            raise ValidationError("Another account already uses this email address.")
+
+    def validate_date_of_birth(self, field: DateField) -> None:
+        value = field.data
+        if value is None:
+            return
+        if value > date.today():
+            raise ValidationError("Date of birth cannot be in the future.")
+        if value < date(1900, 1, 1):
+            raise ValidationError("Enter a date of birth after 1 January 1900.")

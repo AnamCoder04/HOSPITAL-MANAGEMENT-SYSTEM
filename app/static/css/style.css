@@ -1442,3 +1442,37 @@ body.sidebar-open {
   text-transform: uppercase;
   color: var(--hms-muted);
 }
+
+/* ==========================================================================
+   15. Pagination
+   ========================================================================== */
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem;
+  border-top: 1px solid var(--hms-border);
+  background: #fbfcfe;
+}
+
+.pagination-summary {
+  font-size: 0.82rem;
+  color: var(--hms-muted);
+}
+
+.pagination .page-link {
+  color: var(--hms-blue);
+  border-color: var(--hms-border);
+}
+
+.pagination .page-item.active .page-link {
+  background: var(--hms-blue);
+  border-color: var(--hms-blue);
+  color: #fff;
+}
+
+.pagination .page-item.disabled .page-link {
+  color: var(--hms-muted);
+}

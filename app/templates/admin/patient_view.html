@@ -1,0 +1,200 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import stat_card, status_badge, empty_state, account_badge, pagination with context %}
+
+{% block title %}{{ patient.full_name }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Patient profile{% endblock %}
+{% block page_subtitle %}{{ patient.patient_code }}{% if patient.age is not none %} &middot; {{ patient.age }} years{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+<!-- Profile header -->
+<div class="hms-card mb-4">
+  <div class="hms-card-body">
+    <div class="profile-header">
+      <div class="profile-avatar">{{ patient.user.initials }}</div>
+      <div class="flex-grow-1 min-w-0">
+        <h2 class="h4 mb-1">{{ patient.full_name }}</h2>
+        <p class="text-muted-2 mb-1">
+          {{ patient.patient_code }}
+          {% if patient.gender %}&middot; {{ patient.gender }}{% endif %}
+          {% if patient.blood_group %}&middot; Blood group {{ patient.blood_group }}{% endif %}
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          {{ account_badge(patient.user) }}
+          <span class="badge badge-soft-blue">Registered {{ patient.created_at.strftime("%d %b %Y") }}</span>
+          {% if patient.user.last_login %}
+            <span class="badge badge-soft-teal">Last login {{ patient.user.last_login.strftime("%d %b %Y") }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('admin.patient_edit', patient_id=patient.id) }}" class="btn btn-hms btn-sm">
+          <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+
+        <form id="togglePatientForm" method="post" action="{{ url_for('admin.patient_toggle', patient_id=patient.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+        <button type="button"
+                class="btn btn-sm {{ 'btn-outline-hms' if patient.user.is_active else 'btn-teal' }}"
+                data-confirm-form="#togglePatientForm"
+                data-confirm-title="{{ 'Deactivate patient?' if patient.user.is_active else 'Reactivate patient?' }}"
+                data-confirm-text="{{ patient.full_name ~ ' will no longer be able to sign in. Appointments and treatment records stay exactly as they are.' if patient.user.is_active else patient.full_name ~ ' will be able to sign in again.' }}"
+                data-confirm-button="{{ 'Deactivate' if patient.user.is_active else 'Reactivate' }}"
+                data-confirm-tone="{{ 'warning' if patient.user.is_active else 'success' }}">
+          <i class="bi {{ 'bi-pause-circle' if patient.user.is_active else 'bi-play-circle' }} me-1"></i>
+          {{ "Deactivate" if patient.user.is_active else "Reactivate" }}
+        </button>
+
+        <a href="{{ url_for('admin.patients') }}" class="btn btn-sm btn-outline-hms">
+          <i class="bi bi-arrow-left me-1"></i>All patients
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Statistics -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">{{ stat_card("Appointments", stats.total, "bi-calendar2-check", "blue", "All time") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Upcoming", stats.upcoming, "bi-calendar2-week", "amber", "Booked from today") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Completed", stats.completed, "bi-check2-circle", "teal", "Consultations done") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Treatments", history.treatments, "bi-journal-medical", "red", "Clinical records") }}</div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-5">
+    <!-- Details -->
+    <div class="hms-card mb-4">
+      <div class="hms-card-header"><h2 class="hms-card-title">Patient details</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0">
+          <dt>Patient ID</dt><dd>{{ patient.patient_code }}</dd>
+          <dt>Email</dt><dd class="text-break">{{ patient.email }}</dd>
+          <dt>Phone</dt><dd>{{ patient.phone or "—" }}</dd>
+          <dt>Emergency contact</dt><dd>{{ patient.emergency_contact or "—" }}</dd>
+          <dt>Date of birth</dt>
+          <dd>
+            {{ patient.date_of_birth.strftime("%d %b %Y") if patient.date_of_birth else "—" }}
+            {% if patient.age is not none %}<span class="text-muted-2">({{ patient.age }} yrs)</span>{% endif %}
+          </dd>
+          <dt>Gender</dt><dd>{{ patient.gender or "—" }}</dd>
+          <dt>Blood group</dt><dd>{{ patient.blood_group or "—" }}</dd>
+          <dt>Address</dt><dd>{{ patient.address or "—" }}</dd>
+        </dl>
+
+        {% if patient.allergies %}
+          <div class="alert alert-warning mb-0 mt-2 py-2">
+            <strong class="d-block small mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Allergies / chronic conditions</strong>
+            <span class="small">{{ patient.allergies }}</span>
+          </div>
+        {% else %}
+          <p class="form-text mb-0 mt-2">No allergies or chronic conditions recorded.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- History protection -->
+    <div class="hms-card">
+      <div class="hms-card-header"><h2 class="hms-card-title">Record history</h2></div>
+      <div class="hms-card-body">
+        <ul class="glance-list px-0">
+          <li><span><i class="bi bi-calendar2-check me-2 text-muted-2"></i>Appointments</span><strong>{{ history.appointments }}</strong></li>
+          <li><span><i class="bi bi-journal-medical me-2 text-muted-2"></i>Treatment records</span><strong>{{ history.treatments }}</strong></li>
+        </ul>
+        <p class="form-text mb-0 mt-2">
+          Patient accounts can only be deactivated, never deleted: appointments and
+          treatment records are part of the medical history and are always kept.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    <!-- Appointment history -->
+    <div class="hms-card mb-4">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Appointment history</h2>
+          <p class="hms-card-sub">Most recent first</p>
+        </div>
+      </div>
+
+      {% if appointments %}
+        <div class="table-responsive">
+          <table class="table hms-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Time</th>
+                <th scope="col">Doctor</th>
+                <th scope="col">Reason</th>
+                <th scope="col" class="text-end">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for appointment in appointments %}
+                <tr>
+                  <td class="text-nowrap">{{ appointment.appointment_date.strftime("%d %b %Y") }}</td>
+                  <td class="text-nowrap">{{ appointment.appointment_time.strftime("%H:%M") }}</td>
+                  <td>
+                    <span class="d-block">Dr. {{ appointment.doctor.full_name }}</span>
+                    <small class="text-muted-2">{{ appointment.doctor.specialization }}</small>
+                  </td>
+                  <td class="text-truncate" style="max-width: 180px;">{{ appointment.reason or "—" }}</td>
+                  <td class="text-end">{{ status_badge(appointment) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {{ pagination(pager, "admin.patient_view", {"patient_id": patient.id}, "appointments") }}
+      {% else %}
+        {{ empty_state("No appointments yet", "This patient has not booked a consultation.", "bi-calendar2-x") }}
+      {% endif %}
+    </div>
+
+    <!-- Treatment history -->
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Treatment history</h2>
+          <p class="hms-card-sub">Diagnoses, prescriptions and follow-ups</p>
+        </div>
+      </div>
+
+      {% if treatments %}
+        <ul class="recent-list">
+          {% for treatment in treatments %}
+            <li class="align-items-start">
+              <span class="recent-avatar"><i class="bi bi-journal-medical"></i></span>
+              <span class="recent-main">
+                <strong>{{ treatment.diagnosis }}</strong>
+                <small>
+                  {{ treatment.appointment.appointment_date.strftime("%d %b %Y") }}
+                  &middot; Dr. {{ treatment.doctor.full_name }}
+                  <span class="text-muted-2">({{ treatment.doctor.specialization }})</span>
+                </small>
+                {% if treatment.prescription %}
+                  <small class="d-block"><span class="text-muted-2">Prescription:</span> {{ treatment.prescription }}</small>
+                {% endif %}
+                {% if treatment.treatment_plan %}
+                  <small class="d-block"><span class="text-muted-2">Plan:</span> {{ treatment.treatment_plan }}</small>
+                {% endif %}
+                {% if treatment.follow_up_date %}
+                  <small class="d-block"><span class="text-muted-2">Follow-up:</span> {{ treatment.follow_up_date.strftime("%d %b %Y") }}</small>
+                {% endif %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ empty_state("No treatment records", "Records appear here after a consultation is completed.", "bi-journal-text") }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% include "partials/_confirm_modal.html" %}
+{% endblock %}

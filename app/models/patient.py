@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from sqlalchemy import event
 
 from app.extensions import db
@@ -64,6 +66,18 @@ class Patient(TimestampMixin, db.Model):
     @property
     def phone(self) -> str | None:
         return self.user.phone if self.user else None
+
+    @property
+    def age(self) -> int | None:
+        """Age in whole years, or None when no date of birth is recorded."""
+        if not self.date_of_birth:
+            return None
+        today = date.today()
+        return (
+            today.year
+            - self.date_of_birth.year
+            - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
+        )
 
     def __repr__(self) -> str:  # pragma: no cover - debugging helper
         return f"<Patient {self.patient_code} {self.full_name}>"

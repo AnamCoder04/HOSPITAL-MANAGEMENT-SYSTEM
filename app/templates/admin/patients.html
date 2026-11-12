@@ -1,21 +1,63 @@
 {% extends "layouts/dashboard.html" %}
-{% from "partials/_macros.html" import empty_state, account_badge with context %}
+{% from "partials/_macros.html" import empty_state, account_badge, pagination with context %}
 
 {% block title %}Patients &middot; {{ hospital_name }}{% endblock %}
 {% block page_title %}Patients{% endblock %}
-{% block page_subtitle %}{{ patients|length }} patient account{{ "" if patients|length == 1 else "s" }} on record{% endblock %}
+{% block page_subtitle %}{{ total_patients }} patient account{{ "" if total_patients == 1 else "s" }} on record{% endblock %}
 
 {% block dashboard_content %}
 <div class="hms-card">
   <div class="hms-card-header">
     <div>
       <h2 class="hms-card-title">All patients</h2>
-      <p class="hms-card-sub">Newest registrations first</p>
+      <p class="hms-card-sub">Search by name, patient ID or contact number</p>
     </div>
     <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-hms btn-sm">
       <i class="bi bi-arrow-left me-1"></i>Dashboard
     </a>
   </div>
+
+  <!-- Search & filter (GET, so results can be bookmarked and paginated) -->
+  <form class="filter-bar" method="get" action="{{ url_for('admin.patients') }}">
+    <div class="row g-2 align-items-start">
+      <div class="col-md-4">
+        <label class="form-label" for="q">Search by name</label>
+        <input class="form-control {{ 'is-invalid' if form.q.errors }}" type="search"
+               id="q" name="q" value="{{ form.q.data or '' }}" placeholder="e.g. Sharma">
+        {% for error in form.q.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label" for="patient_id">Patient ID</label>
+        <input class="form-control {{ 'is-invalid' if form.patient_id.errors }}" type="text"
+               id="patient_id" name="patient_id" value="{{ form.patient_id.data or '' }}"
+               placeholder="PAT-000123">
+        {% for error in form.patient_id.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label" for="phone">Contact number</label>
+        <input class="form-control {{ 'is-invalid' if form.phone.errors }}" type="tel"
+               id="phone" name="phone" value="{{ form.phone.data or '' }}" placeholder="9876543210">
+        {% for error in form.phone.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-hms flex-grow-1">
+          <i class="bi bi-search me-1"></i>Search
+        </button>
+        <a href="{{ url_for('admin.patients') }}" class="btn btn-outline-hms" title="Clear filters">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </div>
+  </form>
 
   {% if patients %}
     <div class="table-responsive">
@@ -25,9 +67,11 @@
             <th scope="col">Patient ID</th>
             <th scope="col">Patient</th>
             <th scope="col">Contact</th>
-            <th scope="col">Gender</th>
+            <th scope="col">Age / Gender</th>
+            <th scope="col">Blood group</th>
             <th scope="col">Registered</th>
-            <th scope="col" class="text-end">Status</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -35,20 +79,60 @@
             <tr>
               <td class="text-nowrap fw-semibold">{{ patient.patient_code }}</td>
               <td>
-                <span class="d-block">{{ patient.full_name }}</span>
+                <a class="d-block text-reset text-decoration-none fw-semibold"
+                   href="{{ url_for('admin.patient_view', patient_id=patient.id) }}">
+                  {{ patient.full_name }}
+                </a>
                 <small class="text-muted-2">{{ patient.email }}</small>
               </td>
               <td class="text-nowrap">{{ patient.phone or "—" }}</td>
-              <td>{{ patient.gender or "—" }}</td>
+              <td class="text-nowrap">
+                {{ (patient.age ~ " yrs") if patient.age is not none else "—" }}
+                <span class="text-muted-2">&middot; {{ patient.gender or "—" }}</span>
+              </td>
+              <td class="text-nowrap">{{ patient.blood_group or "—" }}</td>
               <td class="text-nowrap">{{ patient.created_at.strftime("%d %b %Y") }}</td>
-              <td class="text-end">{{ account_badge(patient.user) }}</td>
+              <td>{{ account_badge(patient.user) }}</td>
+              <td class="text-end">
+                <div class="table-actions">
+                  <a href="{{ url_for('admin.patient_view', patient_id=patient.id) }}"
+                     class="btn btn-sm btn-outline-hms" title="View patient">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="{{ url_for('admin.patient_edit', patient_id=patient.id) }}"
+                     class="btn btn-sm btn-outline-hms" title="Edit patient">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+
+                  {# Deactivation is a POST through the shared confirm modal. #}
+                  <form id="toggle-patient-{{ patient.id }}" method="post"
+                        action="{{ url_for('admin.patient_toggle', patient_id=patient.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  </form>
+                  <button type="button" class="btn btn-sm btn-outline-hms"
+                          title="{{ 'Deactivate account' if patient.user.is_active else 'Reactivate account' }}"
+                          data-confirm-form="#toggle-patient-{{ patient.id }}"
+                          data-confirm-title="{{ 'Deactivate patient?' if patient.user.is_active else 'Reactivate patient?' }}"
+                          data-confirm-text="{{ patient.full_name ~ ' will no longer be able to sign in. Appointments and treatment records stay exactly as they are.' if patient.user.is_active else patient.full_name ~ ' will be able to sign in again.' }}"
+                          data-confirm-button="{{ 'Deactivate' if patient.user.is_active else 'Reactivate' }}"
+                          data-confirm-tone="{{ 'warning' if patient.user.is_active else 'success' }}">
+                    <i class="bi {{ 'bi-pause-circle' if patient.user.is_active else 'bi-play-circle' }}"></i>
+                  </button>
+                </div>
+              </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+
+    {{ pagination(pager, "admin.patients", filters, "patients") }}
+  {% elif form.q.data or form.patient_id.data or form.phone.data %}
+    {{ empty_state("No patients match your search", "Check the patient ID and try a shorter name, or clear the filters.", "bi-search") }}
   {% else %}
     {{ empty_state("No patients yet", "Patients appear here after they create an account.", "bi-people") }}
   {% endif %}
 </div>
+
+{% include "partials/_confirm_modal.html" %}
 {% endblock %}

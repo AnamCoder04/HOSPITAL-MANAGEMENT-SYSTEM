@@ -42,6 +42,47 @@
 {% endmacro %}
 
 
+{% macro pagination(pager, endpoint, params={}, noun="items") %}
+  {# Bootstrap pagination + a "Showing 1-10 of 42" summary.
+     `params` are the active filters, kept on every page link. #}
+  {% if pager.total %}
+    <div class="pagination-bar">
+      <span class="pagination-summary">
+        {% if pager.total %}
+          Showing {{ pager.first }}&ndash;{{ pager.last }} of {{ pager.total }} {{ noun }}
+        {% else %}
+          No {{ noun }}
+        {% endif %}
+      </span>
+
+      {% if pager.pages > 1 %}
+      <nav aria-label="Pagination">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item {{ 'disabled' if not pager.has_prev }}">
+            <a class="page-link" href="{{ url_for(endpoint, page=pager.prev_num, **params) if pager.has_prev else '#' }}" aria-label="Previous">&laquo;</a>
+          </li>
+
+          {% for number in pager.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if number %}
+              <li class="page-item {{ 'active' if number == pager.page }}">
+                <a class="page-link" href="{{ url_for(endpoint, page=number, **params) }}">{{ number }}</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% endif %}
+          {% endfor %}
+
+          <li class="page-item {{ 'disabled' if not pager.has_next }}">
+            <a class="page-link" href="{{ url_for(endpoint, page=pager.next_num, **params) if pager.has_next else '#' }}" aria-label="Next">&raquo;</a>
+          </li>
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endmacro %}
+
+
 {% macro page_header(title, subtitle="") %}
   <div class="page-heading">
     <h2 class="h5 mb-1">{{ title }}</h2>

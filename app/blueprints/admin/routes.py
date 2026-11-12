@@ -1,26 +1,37 @@
 """Administrator routes.
 
 Doctor management (Task 7): list + search, create with a linked login account,
-view, edit, activate/deactivate and a guarded delete. The other management
-lists stay read-only until their own tasks.
+view, edit, activate/deactivate and a guarded delete.
+Patient management (Task 8): paginated list with name / patient-ID / phone
+search, profile with appointment and treatment history, editing and account
+deactivation. Patients are never deleted, because their appointments and
+treatment records are medical history.
+
+The remaining management lists stay read-only until their own tasks.
 """
 
 from __future__ import annotations
 
 from datetime import date
 
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import current_app, flash, redirect, render_template, request, session, url_for
 from sqlalchemy.exc import IntegrityError
 
 from app.blueprints.admin import admin_bp
-from app.blueprints.admin.forms import DoctorCreateForm, DoctorEditForm
+from app.blueprints.admin.forms import (
+    DoctorCreateForm,
+    DoctorEditForm,
+    PatientEditForm,
+    PatientSearchForm,
+)
 from app.extensions import db
 from app.models import Appointment, Department, Doctor, Patient, Role
-from app.services import doctor_service
+from app.services import doctor_service, patient_service
 from app.services.stats_service import (
     admin_dashboard_stats,
     appointment_status_chart,
     doctor_dashboard_stats,
+    patient_dashboard_stats,
     recent_doctors,
     recent_patients,
 )
@@ -204,14 +215,125 @@ def doctor_delete(doctor_id: int):
 
 
 # ---------------------------------------------------------------------------
-# Patients / appointments / departments (read-only for now)
+# Patients
 # ---------------------------------------------------------------------------
 @admin_bp.route("/patients")
 @role_required(Role.ADMIN)
 def patients():
-    """Every patient account, newest first."""
-    patients_list = Patient.query.order_by(Patient.created_at.desc()).all()
-    return render_template("admin/patients.html", patients=patients_list)
+    """Paginated patient list, searchable by name, patient ID and phone."""
+    form = PatientSearchForm(request.args)
+    form.validate()  # a GET filter form: invalid input is shown, not applied blindly
+
+    page = request.args.get("page", 1, type=int) or 1
+    pager = patient_service.search_patients(
+        name=form.q.data or "",
+        patient_code=form.patient_id.data or "",
+        phone=form.phone.data or "",
+        page=page,
+        per_page=current_app.config["ITEMS_PER_PAGE"],
+    )
+
+    # Only non-empty filters are carried into pagination links.
+    filters = {
+        key: value
+        for key, value in {
+            "q": form.q.data,
+            "patient_id": form.patient_id.data,
+            "phone": form.phone.data,
+        }.items()
+        if value
+    }
+
+    return render_template(
+        "admin/patients.html",
+        form=form,
+        pager=pager,
+        patients=pager.items,
+        filters=filters,
+        total_patients=Patient.query.count(),
+    )
+
+
+@admin_bp.route("/patients/<int:patient_id>")
+@role_required(Role.ADMIN)
+def patient_view(patient_id: int):
+    """One patient's profile, appointment history and treatment history."""
+    patient = db.get_or_404(Patient, patient_id)
+    page = request.args.get("page", 1, type=int) or 1
+
+    pager = patient_service.appointments_page(
+        patient, page=page, per_page=current_app.config["ITEMS_PER_PAGE"]
+    )
+    treatments = patient_service.patient_treatments(patient)
+
+    return render_template(
+        "admin/patient_view.html",
+        patient=patient,
+        stats=patient_dashboard_stats(patient),
+        pager=pager,
+        appointments=pager.items,
+        treatments=treatments,
+        history=patient_service.medical_history_summary(patient),
+    )
+
+
+@admin_bp.route("/patients/<int:patient_id>/edit", methods=["GET", "POST"])
+@role_required(Role.ADMIN)
+def patient_edit(patient_id: int):
+    """Correct a patient's contact details and medical profile."""
+    patient = db.get_or_404(Patient, patient_id)
+    form = PatientEditForm(patient=patient)
+
+    if form.validate_on_submit():
+        try:
+            patient_service.update_patient(patient, form)
+        except IntegrityError:
+            db.session.rollback()
+            flash("That email address is already used by another account.", "danger")
+        else:
+            flash(f"{patient.full_name}'s details were updated.", "success")
+            return redirect(url_for("admin.patient_view", patient_id=patient.id))
+
+    elif request.method == "GET":
+        form.full_name.data = patient.full_name
+        form.email.data = patient.email
+        form.phone.data = patient.phone
+        form.date_of_birth.data = patient.date_of_birth
+        form.gender.data = patient.gender or ""
+        form.blood_group.data = patient.blood_group or ""
+        form.address.data = patient.address
+        form.emergency_contact.data = patient.emergency_contact
+        form.allergies.data = patient.allergies
+
+    return render_template(
+        "admin/patient_form.html",
+        form=form,
+        patient=patient,
+        history=patient_service.medical_history_summary(patient),
+    )
+
+
+@admin_bp.route("/patients/<int:patient_id>/toggle", methods=["POST"])
+@role_required(Role.ADMIN)
+def patient_toggle(patient_id: int):
+    """Deactivate or reactivate a patient's login. History is untouched."""
+    patient = db.get_or_404(Patient, patient_id)
+    is_active = patient_service.toggle_patient_active(patient)
+
+    if is_active:
+        flash(f"{patient.full_name}'s account was reactivated.", "success")
+    else:
+        flash(
+            f"{patient.full_name}'s account was deactivated. "
+            "Appointments and treatment records are unchanged.",
+            "warning",
+        )
+    return redirect(url_for("admin.patient_view", patient_id=patient.id))
+
+
+# ---------------------------------------------------------------------------
+# Appointments / departments (read-only for now)
+# ---------------------------------------------------------------------------
 
 
 @admin_bp.route("/appointments")
