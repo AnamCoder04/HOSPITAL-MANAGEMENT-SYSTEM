@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}{{ hospital_name }} &middot; {{ hospital_tagline }}{% endblock %}
+
+{% block content %}
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="hero-pill">
+          <i class="bi bi-shield-check me-1"></i> Trusted hospital care, 24/7
+        </span>
+        <h1 class="hero-title mt-3">
+          Better care starts with a <span class="text-gradient">simpler appointment</span>
+        </h1>
+        <p class="hero-lead">
+          {{ hospital_name }} brings doctors, patients and administration onto one
+          platform &mdash; search specialists, book a consultation and keep every
+          medical record in one secure place.
+        </p>
+        <div class="d-flex flex-wrap gap-2 mt-4">
+          <a href="/auth/register" class="btn btn-hms btn-lg px-4">
+            <i class="bi bi-person-plus me-2"></i>Book an appointment
+          </a>
+          <a href="#services" class="btn btn-outline-hms btn-lg px-4">Explore services</a>
+        </div>
+        <p class="hero-note mt-3 mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          Existing patient? <a href="/auth/login">Log in here</a>.
+        </p>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="hero-card">
+          <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+              <span class="text-muted small text-uppercase fw-semibold">Patient portal</span>
+              <h5 class="mb-0 mt-1">Your next visit</h5>
+            </div>
+            <span class="badge badge-soft-teal">Confirmed</span>
+          </div>
+
+          <div class="hero-appointment">
+            <div class="hero-appointment-icon"><i class="bi bi-calendar2-check"></i></div>
+            <div>
+              <div class="fw-semibold">Cardiology consultation</div>
+              <div class="text-muted small">Dr. A. Sharma &middot; Room 204</div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-3">
+            <div class="col-6">
+              <div class="mini-stat">
+                <i class="bi bi-clock"></i>
+                <span class="d-block small text-muted">Time slot</span>
+                <strong>10:30 AM</strong>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mini-stat">
+                <i class="bi bi-file-medical"></i>
+                <span class="d-block small text-muted">Records</span>
+                <strong>Up to date</strong>
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <p class="small text-muted mb-0">
+            <i class="bi bi-lock me-1"></i>
+            Private by design &mdash; patients only ever see their own records.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HIGHLIGHTS ================= -->
+<section class="highlights">
+  <div class="container">
+    <div class="row g-4 text-center">
+      <div class="col-6 col-lg-3">
+        <div class="highlight-item">
+          <i class="bi bi-heart-pulse"></i>
+          <strong>Emergency care</strong>
+          <span>Round-the-clock support</span>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="highlight-item">
+          <i class="bi bi-people"></i>
+          <strong>Specialist doctors</strong>
+          <span>Across every department</span>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="highlight-item">
+          <i class="bi bi-calendar2-week"></i>
+          <strong>7-day availability</strong>
+          <span>Book the slot you want</span>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="highlight-item">
+          <i class="bi bi-folder2-open"></i>
+          <strong>Digital records</strong>
+          <span>Diagnosis and prescriptions</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SERVICES ================= -->
+<section class="section" id="services">
+  <div class="container">
+    <div class="section-head text-center">
+      <span class="section-eyebrow">What we offer</span>
+      <h2 class="section-title">Care for every stage of life</h2>
+      <p class="section-lead mx-auto">
+        A single hospital record follows the patient from the first consultation to
+        the last follow-up, so nothing gets lost between departments.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="feature-icon"><i class="bi bi-clipboard2-pulse"></i></div>
+          <h5>Outpatient consultations</h5>
+          <p>Search a specialist by name or specialization and book a slot from their next seven days of availability.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="feature-icon"><i class="bi bi-calendar2-check"></i></div>
+          <h5>Appointment management</h5>
+          <p>Reschedule or cancel without a phone call. A cancelled slot is released immediately for other patients.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="feature-icon"><i class="bi bi-journal-medical"></i></div>
+          <h5>Medical history</h5>
+          <p>Diagnosis, prescriptions and treatment plans recorded by the doctor and available to the patient afterwards.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="feature-icon"><i class="bi bi-hospital"></i></div>
+          <h5>Departments</h5>
+          <p>Cardiology, Orthopaedics, Paediatrics, Dermatology and more, each with its own specialists and rooms.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="feature-icon"><i class="bi bi-shield-lock"></i></div>
+          <h5>Role-based access</h5>
+          <p>Administrators, doctors and patients each get their own portal and can only reach the records that belong to them.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="feature-icon"><i class="bi bi-graph-up-arrow"></i></div>
+          <h5>Hospital overview</h5>
+          <p>Live counts of doctors, patients and appointments so the front desk always knows what the day looks like.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section class="section section-tinted" id="how-it-works">
+  <div class="container">
+    <div class="section-head text-center">
+      <span class="section-eyebrow">Getting started</span>
+      <h2 class="section-title">Three steps to your consultation</h2>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="step-card h-100">
+          <span class="step-number">01</span>
+          <h5>Create your account</h5>
+          <p class="mb-0">Register once with your name, email and contact number. Your patient ID is generated automatically.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="step-card h-100">
+          <span class="step-number">02</span>
+          <h5>Choose a doctor</h5>
+          <p class="mb-0">Filter by specialization or department, open the profile and check the next seven days of slots.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="step-card h-100">
+          <span class="step-number">03</span>
+          <h5>Visit and review</h5>
+          <p class="mb-0">After the consultation your diagnosis and prescription appear in your portal, ready to review any time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CALL TO ACTION ================= -->
+<section class="section">
+  <div class="container">
+    <div class="cta-band">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+          <h2 class="mb-2">Ready when you are</h2>
+          <p class="mb-0 cta-text">
+            Create a patient account in under a minute, or log in to the account the
+            hospital created for you.
+          </p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+          <a href="/auth/register" class="btn btn-light btn-lg px-4 fw-semibold">Create account</a>
+          <a href="/auth/login" class="btn btn-outline-light btn-lg px-4 ms-lg-2 mt-2 mt-lg-0">Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

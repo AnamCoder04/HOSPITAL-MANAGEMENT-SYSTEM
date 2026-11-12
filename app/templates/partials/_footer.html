@@ -1,0 +1,48 @@
+<footer class="site-footer" id="contact">
+  <div class="container">
+    <div class="row gy-4">
+      <div class="col-lg-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" width="34" height="34">
+          <strong class="fs-5">{{ hospital_name }}</strong>
+        </div>
+        <p class="footer-muted mb-0">
+          One connected platform for administrators, doctors and patients &mdash;
+          appointments, availability and medical records in a single place.
+        </p>
+      </div>
+
+      <div class="col-6 col-lg-2">
+        <h6 class="footer-heading">Hospital</h6>
+        <ul class="list-unstyled footer-links mb-0">
+          <li><a href="{{ url_for('main.index') }}#services">Services</a></li>
+          <li><a href="{{ url_for('main.index') }}#how-it-works">How it works</a></li>
+          <li><a href="{{ url_for('main.index') }}">Home</a></li>
+        </ul>
+      </div>
+
+      <div class="col-6 col-lg-3">
+        <h6 class="footer-heading">Patients</h6>
+        <ul class="list-unstyled footer-links mb-0">
+          <li><a href="/auth/register">Create an account</a></li>
+          <li><a href="/auth/login">Patient login</a></li>
+        </ul>
+      </div>
+
+      <div class="col-lg-3">
+        <h6 class="footer-heading">Contact</h6>
+        <ul class="list-unstyled footer-links mb-0">
+          <li><i class="bi bi-telephone me-2"></i>+91 00000 00000</li>
+          <li><i class="bi bi-envelope me-2"></i>frontdesk@medicare-hms.local</li>
+          <li><i class="bi bi-geo-alt me-2"></i>City Hospital Campus</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr class="footer-divider">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 footer-muted small">
+      <span>&copy; {{ current_year }} {{ hospital_name }}. College project demo.</span>
+      <span>Built with Flask, SQLite and Bootstrap 5.</span>
+    </div>
+  </div>
+</footer>

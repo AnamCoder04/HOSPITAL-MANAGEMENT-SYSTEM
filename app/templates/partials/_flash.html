@@ -1,0 +1,16 @@
+{# Flash messages -> Bootstrap alerts.
+   Call flash("Saved", "success") in a view; "success|danger|warning|info" map
+   straight onto Bootstrap's alert classes. #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container flash-stack">
+      {% for category, message in messages %}
+        {% set alert_class = "alert-" ~ (category if category in ["success", "danger", "warning", "info"] else "info") %}
+        <div class="alert {{ alert_class }} alert-dismissible fade show shadow-sm" role="alert">
+          <i class="bi bi-info-circle-fill me-2"></i>{{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}

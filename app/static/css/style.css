@@ -1,0 +1,475 @@
+/* ==========================================================================
+   MediCare HMS - global stylesheet
+   1. Design tokens
+   2. Base / typography
+   3. Buttons
+   4. Navbar
+   5. Hero
+   6. Sections, cards, steps
+   7. Footer
+   8. Utilities
+   Dashboard (sidebar / topbar) styles are added in Task 5.
+   ========================================================================== */
+
+/* 1. Design tokens ------------------------------------------------------- */
+:root {
+  --hms-blue: #1d6fd8;
+  --hms-blue-dark: #1557ab;
+  --hms-blue-50: #eaf2fe;
+  --hms-teal: #0f9b8e;
+  --hms-teal-50: #e6f7f5;
+  --hms-bg: #f6f8fb;
+  --hms-card: #ffffff;
+  --hms-text: #1f2937;
+  --hms-muted: #6b7280;
+  --hms-border: #e5e9f2;
+  --hms-sidebar: #0b2545;
+  --hms-radius: 12px;
+  --hms-shadow: 0 2px 12px rgba(16, 24, 40, 0.06);
+  --hms-shadow-lg: 0 18px 40px rgba(16, 24, 40, 0.1);
+  --hms-amber: #d98a00;
+  --hms-red: #d64545;
+  --hms-green: #12805c;
+}
+
+/* 2. Base / typography --------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--hms-text);
+  background-color: var(--hms-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--hms-text);
+}
+
+a {
+  color: var(--hms-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--hms-blue-dark);
+}
+
+.site-main {
+  min-height: 60vh;
+}
+
+/* 3. Buttons ------------------------------------------------------------- */
+.btn {
+  border-radius: 10px;
+  font-weight: 500;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-hms {
+  background-color: var(--hms-blue);
+  border-color: var(--hms-blue);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(29, 111, 216, 0.22);
+}
+
+.btn-hms:hover,
+.btn-hms:focus {
+  background-color: var(--hms-blue-dark);
+  border-color: var(--hms-blue-dark);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-outline-hms {
+  border: 1px solid var(--hms-border);
+  color: var(--hms-text);
+  background-color: #fff;
+}
+
+.btn-outline-hms:hover,
+.btn-outline-hms:focus {
+  border-color: var(--hms-blue);
+  color: var(--hms-blue);
+  background-color: var(--hms-blue-50);
+}
+
+.btn-teal {
+  background-color: var(--hms-teal);
+  border-color: var(--hms-teal);
+  color: #fff;
+}
+
+.btn-teal:hover {
+  background-color: #0c857a;
+  border-color: #0c857a;
+  color: #fff;
+}
+
+/* 4. Navbar -------------------------------------------------------------- */
+.site-navbar {
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--hms-border);
+  padding-block: 0.6rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.site-navbar.is-stuck {
+  box-shadow: var(--hms-shadow);
+}
+
+.navbar-brand {
+  font-size: 1rem;
+  line-height: 1.15;
+  color: var(--hms-text);
+}
+
+.navbar-brand:hover {
+  color: var(--hms-text);
+}
+
+.navbar-brand-sub {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hms-muted);
+  font-weight: 500;
+}
+
+.site-navbar .nav-link {
+  color: var(--hms-text);
+  font-weight: 500;
+  padding-inline: 0.75rem;
+  border-radius: 8px;
+}
+
+.site-navbar .nav-link:hover {
+  color: var(--hms-blue);
+  background-color: var(--hms-blue-50);
+}
+
+/* 5. Hero ---------------------------------------------------------------- */
+.hero {
+  position: relative;
+  padding: clamp(2.5rem, 6vw, 5rem) 0 clamp(2.5rem, 5vw, 4rem);
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgba(15, 155, 142, 0.12), transparent 60%),
+    radial-gradient(900px 420px at 0% 0%, rgba(29, 111, 216, 0.12), transparent 55%),
+    var(--hms-bg);
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--hms-blue-dark);
+  background-color: var(--hms-blue-50);
+  border: 1px solid rgba(29, 111, 216, 0.18);
+  border-radius: 999px;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 4.2vw, 3.1rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, var(--hms-blue), var(--hms-teal));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-lead {
+  margin-top: 1rem;
+  font-size: 1.03rem;
+  color: var(--hms-muted);
+  max-width: 34rem;
+}
+
+.hero-note {
+  font-size: 0.88rem;
+  color: var(--hms-muted);
+}
+
+.hero-card {
+  background: var(--hms-card);
+  border: 1px solid var(--hms-border);
+  border-radius: 18px;
+  box-shadow: var(--hms-shadow-lg);
+  padding: 1.6rem;
+}
+
+.hero-appointment {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--hms-border);
+  border-radius: var(--hms-radius);
+  background-color: #fbfcfe;
+}
+
+.hero-appointment-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background-color: var(--hms-blue-50);
+  color: var(--hms-blue);
+  font-size: 1.2rem;
+}
+
+.mini-stat {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--hms-border);
+  border-radius: var(--hms-radius);
+  background-color: #fff;
+}
+
+.mini-stat i {
+  color: var(--hms-teal);
+  font-size: 1.05rem;
+}
+
+.badge-soft-teal {
+  background-color: var(--hms-teal-50);
+  color: #0b7d72;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+}
+
+/* 6. Sections and cards -------------------------------------------------- */
+.highlights {
+  background-color: #fff;
+  border-block: 1px solid var(--hms-border);
+  padding: 1.6rem 0;
+}
+
+.highlight-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.highlight-item i {
+  font-size: 1.4rem;
+  color: var(--hms-blue);
+  margin-bottom: 0.3rem;
+}
+
+.highlight-item strong {
+  font-size: 0.95rem;
+}
+
+.highlight-item span {
+  font-size: 0.8rem;
+  color: var(--hms-muted);
+}
+
+.section {
+  padding: clamp(3rem, 6vw, 4.5rem) 0;
+}
+
+.section-tinted {
+  background-color: #fff;
+  border-block: 1px solid var(--hms-border);
+}
+
+.section-head {
+  max-width: 46rem;
+  margin: 0 auto 2.5rem;
+}
+
+.section-eyebrow {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hms-teal);
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+  font-weight: 700;
+}
+
+.section-lead {
+  color: var(--hms-muted);
+  max-width: 40rem;
+  margin-top: 0.75rem;
+}
+
+.feature-card {
+  background: var(--hms-card);
+  border: 1px solid var(--hms-border);
+  border-radius: var(--hms-radius);
+  box-shadow: var(--hms-shadow);
+  padding: 1.5rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--hms-shadow-lg);
+}
+
+.feature-card h5 {
+  font-size: 1.02rem;
+  margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+  color: var(--hms-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.feature-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background-color: var(--hms-blue-50);
+  color: var(--hms-blue);
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.step-card {
+  position: relative;
+  background: var(--hms-card);
+  border: 1px solid var(--hms-border);
+  border-radius: var(--hms-radius);
+  padding: 1.6rem;
+  box-shadow: var(--hms-shadow);
+}
+
+.step-card p {
+  color: var(--hms-muted);
+  font-size: 0.9rem;
+}
+
+.step-number {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--hms-teal);
+  background-color: var(--hms-teal-50);
+  border-radius: 8px;
+  padding: 0.2rem 0.55rem;
+  margin-bottom: 0.9rem;
+}
+
+.cta-band {
+  background: linear-gradient(120deg, var(--hms-blue), #0d5cad 55%, var(--hms-teal));
+  border-radius: 18px;
+  padding: clamp(1.8rem, 4vw, 2.8rem);
+  color: #fff;
+  box-shadow: var(--hms-shadow-lg);
+}
+
+.cta-band h2 {
+  color: #fff;
+}
+
+.cta-text {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* 7. Footer -------------------------------------------------------------- */
+.site-footer {
+  background-color: var(--hms-sidebar);
+  color: #dbe4f0;
+  padding: 3rem 0 1.5rem;
+  margin-top: auto;
+}
+
+.site-footer .footer-heading {
+  color: #fff;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.9rem;
+}
+
+.footer-muted {
+  color: #9fb1c9;
+}
+
+.footer-links li {
+  margin-bottom: 0.45rem;
+  font-size: 0.88rem;
+}
+
+.footer-links a {
+  color: #cbd8e8;
+}
+
+.footer-links a:hover {
+  color: #fff;
+}
+
+.footer-divider {
+  border-color: rgba(255, 255, 255, 0.12);
+  margin: 2rem 0 1.2rem;
+}
+
+/* 8. Utilities ----------------------------------------------------------- */
+.flash-stack {
+  position: relative;
+  z-index: 5;
+  padding-top: 1rem;
+}
+
+.flash-stack .alert {
+  border: none;
+  border-radius: var(--hms-radius);
+  font-size: 0.9rem;
+}
+
+.card-soft {
+  background: var(--hms-card);
+  border: 1px solid var(--hms-border);
+  border-radius: var(--hms-radius);
+  box-shadow: var(--hms-shadow);
+}
+
+.text-muted-2 {
+  color: var(--hms-muted) !important;
+}
+
+@media (max-width: 991.98px) {
+  .site-navbar .navbar-collapse {
+    padding-top: 0.75rem;
+  }
+
+  .site-navbar .nav-item {
+    padding-block: 0.15rem;
+  }
+
+  .hero {
+    padding-top: 2rem;
+  }
+
+  .hero-card {
+    margin-top: 0.5rem;
+  }
+}
