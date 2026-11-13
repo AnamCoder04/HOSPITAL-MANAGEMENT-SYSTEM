@@ -1,0 +1,82 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import empty_state with context %}
+
+{% block title %}My patients &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}My patients{% endblock %}
+{% block page_subtitle %}Everyone assigned to you through an appointment{% endblock %}
+
+{% block dashboard_content %}
+<div class="hms-card">
+  <div class="hms-card-header">
+    <div>
+      <h2 class="hms-card-title">Patient list</h2>
+      <p class="hms-card-sub">{{ rows|length }} patient{{ "" if rows|length == 1 else "s" }} in your care</p>
+    </div>
+    <a href="{{ url_for('doctor.appointments', view='all') }}" class="btn btn-outline-hms btn-sm">
+      <i class="bi bi-calendar2-check me-1"></i>All appointments
+    </a>
+  </div>
+
+  <form class="filter-bar" method="get" action="{{ url_for('doctor.patients') }}">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6 col-lg-5">
+        <label class="form-label" for="q">Patient name</label>
+        <input class="form-control" type="search" id="q" name="q" value="{{ q }}"
+               placeholder="Search by name" maxlength="120">
+      </div>
+      <div class="col-md-6 col-lg-4 d-flex gap-2">
+        <button type="submit" class="btn btn-hms"><i class="bi bi-search me-1"></i>Search</button>
+        <a href="{{ url_for('doctor.patients') }}" class="btn btn-outline-hms">Reset</a>
+      </div>
+    </div>
+  </form>
+
+  {% if rows %}
+    <div class="table-responsive">
+      <table class="table hms-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Patient</th>
+            <th scope="col">Age / gender</th>
+            <th scope="col">Phone</th>
+            <th scope="col" class="text-center">Visits</th>
+            <th scope="col" class="text-center">Completed</th>
+            <th scope="col">Last visit</th>
+            <th scope="col" class="text-end">Record</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>
+                <span class="d-block fw-semibold">{{ row.patient.full_name }}</span>
+                <small class="text-muted-2">{{ row.patient.patient_code }}</small>
+              </td>
+              <td class="text-nowrap">
+                {% if row.patient.age is not none %}{{ row.patient.age }} yrs{% else %}&mdash;{% endif %}
+                {% if row.patient.gender %}<span class="text-muted-2">&middot; {{ row.patient.gender }}</span>{% endif %}
+              </td>
+              <td class="text-nowrap">{{ row.patient.phone or "—" }}</td>
+              <td class="text-center">{{ row.visits }}</td>
+              <td class="text-center">{{ row.completed }}</td>
+              <td class="text-nowrap">
+                {{ row.last_visit.strftime("%d %b %Y") if row.last_visit else "—" }}
+              </td>
+              <td class="text-end">
+                <a href="{{ url_for('doctor.patient_view', patient_id=row.patient.id) }}"
+                   class="btn btn-sm btn-outline-hms">
+                  <i class="bi bi-journal-medical me-1"></i>Open record
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% elif q %}
+    {{ empty_state("No matching patients", "No patient in your care matches that name.", "bi-search") }}
+  {% else %}
+    {{ empty_state("No patients yet", "Patients appear here as soon as they book an appointment with you.", "bi-people") }}
+  {% endif %}
+</div>
+{% endblock %}

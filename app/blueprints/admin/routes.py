@@ -26,10 +26,17 @@ from app.blueprints.admin.forms import (
     DoctorEditForm,
     PatientEditForm,
     PatientSearchForm,
+    TreatmentSearchForm,
 )
 from app.extensions import db
-from app.models import Appointment, Department, Doctor, Patient, Role
-from app.services import appointment_service, department_service, doctor_service, patient_service
+from app.models import Appointment, Department, Doctor, Patient, Role, Treatment
+from app.services import (
+    appointment_service,
+    department_service,
+    doctor_service,
+    patient_service,
+    treatment_service,
+)
 from app.services.stats_service import (
     admin_dashboard_stats,
     appointment_status_chart,
@@ -332,6 +339,60 @@ def patient_toggle(patient_id: int):
             "warning",
         )
     return redirect(url_for("admin.patient_view", patient_id=patient.id))
+
+
+# ---------------------------------------------------------------------------
+# Treatment records (read-only: only the treating doctor writes them)
+# ---------------------------------------------------------------------------
+@admin_bp.route("/treatments")
+@role_required(Role.ADMIN)
+def treatments():
+    """Every clinical record, searchable and filterable by doctor/patient."""
+    form = TreatmentSearchForm(request.args)
+    form.validate()
+
+    page = request.args.get("page", 1, type=int) or 1
+    pager = treatment_service.search_treatments(
+        q=form.q.data or "",
+        doctor_id=0 if form.doctor_id.errors else (form.doctor_id.data or 0),
+        patient_id=0 if form.patient_id.errors else (form.patient_id.data or 0),
+        page=page,
+        per_page=current_app.config["ITEMS_PER_PAGE"],
+    )
+
+    filters = {
+        key: value
+        for key, value in {
+            "q": form.q.data,
+            "doctor_id": form.doctor_id.data if form.doctor_id.data else "",
+            "patient_id": form.patient_id.data if form.patient_id.data else "",
+        }.items()
+        if value
+    }
+
+    return render_template(
+        "admin/treatments.html",
+        form=form,
+        pager=pager,
+        treatments=pager.items,
+        filters=filters,
+        total_treatments=Treatment.query.count(),
+    )
+
+
+@admin_bp.route("/treatments/<int:treatment_id>")
+@role_required(Role.ADMIN)
+def treatment_view(treatment_id: int):
+    """Full clinical record, read-only for the administrator."""
+    treatment = db.get_or_404(Treatment, treatment_id)
+
+    return render_template(
+        "admin/treatment_view.html",
+        treatment=treatment,
+        appointment=treatment.appointment,
+        patient=treatment.appointment.patient,
+        doctor=treatment.doctor,
+    )
 
 
 # ---------------------------------------------------------------------------

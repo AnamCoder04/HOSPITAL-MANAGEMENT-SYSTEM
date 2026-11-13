@@ -20,10 +20,11 @@ from app.blueprints.doctor.forms import (
     AppointmentFilterForm,
     AvailabilityEditForm,
     AvailabilityForm,
+    TreatmentForm,
 )
 from app.extensions import db
 from app.models import Appointment, AppointmentStatus, DoctorAvailability, Role
-from app.services import appointment_service, availability_service
+from app.services import appointment_service, availability_service, treatment_service
 from app.services.stats_service import doctor_dashboard_stats, todays_appointments_for_doctor
 from app.utils.decorators import role_required
 
@@ -165,6 +166,106 @@ def appointment_cancel(appointment_id: int):
         )
 
     return redirect(url_for("doctor.appointment_view", appointment_id=appointment.id))
+
+
+# ---------------------------------------------------------------------------
+# Patients and medical history
+# ---------------------------------------------------------------------------
+@doctor_bp.route("/patients")
+@role_required(Role.DOCTOR)
+def patients():
+    """Patients this doctor has seen, with visit counts."""
+    doctor = _current_doctor()
+    if doctor is None:
+        return redirect(url_for("main.index"))
+
+    q = (request.args.get("q") or "").strip()
+
+    return render_template(
+        "doctor/patients.html",
+        doctor=doctor,
+        rows=treatment_service.assigned_patients(doctor, q=q),
+        q=q,
+    )
+
+
+@doctor_bp.route("/patients/<int:patient_id>")
+@role_required(Role.DOCTOR)
+def patient_view(patient_id: int):
+    """One patient's profile and complete clinical history.
+
+    Scoped to patients this doctor has actually seen: another doctor's
+    patient simply 404s instead of leaking a medical record.
+    """
+    doctor = _current_doctor()
+    if doctor is None:
+        return redirect(url_for("main.index"))
+
+    patient = treatment_service.doctor_patient(doctor, patient_id)
+    if patient is None:
+        return ("Not found", 404)
+
+    appointments = treatment_service.doctor_appointments_for(doctor, patient)
+
+    return render_template(
+        "doctor/patient_view.html",
+        doctor=doctor,
+        patient=patient,
+        appointments=appointments,
+        my_visits=len(appointments),
+        my_completed=sum(1 for item in appointments if item.is_completed),
+        history=treatment_service.patient_history(patient),
+        summary=treatment_service.medical_history_summary(patient),
+        today=date.today(),
+    )
+
+
+@doctor_bp.route("/appointments/<int:appointment_id>/treatment", methods=["GET", "POST"])
+@role_required(Role.DOCTOR)
+def treatment_edit(appointment_id: int):
+    """Write or revise the record for one completed visit of this doctor."""
+    doctor = _current_doctor()
+    if doctor is None:
+        return redirect(url_for("main.index"))
+
+    appointment = Appointment.query.filter_by(
+        id=appointment_id, doctor_id=doctor.id
+    ).first_or_404()
+
+    if appointment.status != AppointmentStatus.COMPLETED:
+        flash(
+            "Treatment details can only be recorded for a completed visit. "
+            "Mark the appointment completed first.",
+            "warning",
+        )
+        return redirect(url_for("doctor.appointment_view", appointment_id=appointment.id))
+
+    form = TreatmentForm(obj=appointment.treatment)
+    form.follow_up_date.render_kw = {"min": appointment.appointment_date.isoformat()}
+
+    if form.validate_on_submit():
+        try:
+            treatment_service.save_treatment(doctor, appointment, form)
+        except ValueError as error:
+            flash(str(error), "warning")
+        else:
+            flash(
+                f"Treatment record for {appointment.patient.full_name}'s visit on "
+                f"{appointment.appointment_date.strftime('%d %b %Y')} was saved.",
+                "success",
+            )
+            return redirect(
+                url_for("doctor.appointment_view", appointment_id=appointment.id)
+            )
+
+    return render_template(
+        "doctor/treatment_form.html",
+        doctor=doctor,
+        appointment=appointment,
+        patient=appointment.patient,
+        treatment=appointment.treatment,
+        form=form,
+    )
 
 
 # ---------------------------------------------------------------------------

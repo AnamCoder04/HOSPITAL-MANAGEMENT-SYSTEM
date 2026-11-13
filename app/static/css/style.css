@@ -1620,3 +1620,83 @@ body.sidebar-open {
   color: #0f766e;
   font-size: 1.9rem;
 }
+
+/* ==========================================================================
+   14. Medical records (Task 13)
+   ========================================================================== */
+.record-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.record-entry {
+  position: relative;
+  margin-left: 0.55rem;
+  padding: 0 0 1.5rem 1.9rem;
+  border-left: 2px solid var(--hms-border);
+}
+
+.record-entry:last-child {
+  border-left-color: transparent;
+  padding-bottom: 0;
+}
+
+.record-entry::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 0.35rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--hms-blue);
+  box-shadow: 0 0 0 3px var(--hms-blue-50);
+}
+
+.record-entry.teal::before {
+  background: var(--hms-teal);
+  box-shadow: 0 0 0 3px var(--hms-teal-50);
+}
+
+.record-meta {
+  font-size: 0.8rem;
+  color: var(--hms-muted);
+}
+
+.record-block {
+  margin-top: 0.75rem;
+}
+
+.record-block h4,
+.record-section-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--hms-muted);
+  margin-bottom: 0.2rem;
+}
+
+.record-text {
+  white-space: pre-line;
+  margin-bottom: 0;
+}
+
+@media print {
+  .hms-sidebar,
+  .app-topbar,
+  .sidebar-backdrop,
+  .btn {
+    display: none !important;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+
+  .hms-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}

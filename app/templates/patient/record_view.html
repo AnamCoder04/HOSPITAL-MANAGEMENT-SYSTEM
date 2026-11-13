@@ -1,0 +1,97 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import status_badge with context %}
+
+{% block title %}Medical record &middot; {{ treatment.appointment.appointment_date.strftime("%d %b %Y") }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Medical record{% endblock %}
+{% block page_subtitle %}Visit of {{ appointment.appointment_date.strftime("%A, %d %B %Y") }} &middot; {{ patient.patient_code }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="hms-card mb-4">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Consultation summary</h2>
+          <p class="hms-card-sub">
+            Dr. {{ treatment.doctor.full_name }} &middot; {{ treatment.doctor.specialization }}
+          </p>
+        </div>
+        {{ status_badge(appointment) }}
+      </div>
+      <div class="hms-card-body">
+        <div class="record-block mt-0">
+          <h4>Diagnosis</h4>
+          <p class="record-text fs-6 fw-semibold">{{ treatment.diagnosis }}</p>
+        </div>
+
+        <div class="record-block">
+          <h4>Prescription</h4>
+          {% if treatment.prescription %}
+            <p class="record-text">{{ treatment.prescription }}</p>
+          {% else %}
+            <p class="text-muted-2 mb-0">No medication was prescribed.</p>
+          {% endif %}
+        </div>
+
+        <div class="record-block">
+          <h4>Treatment plan</h4>
+          {% if treatment.treatment_plan %}
+            <p class="record-text">{{ treatment.treatment_plan }}</p>
+          {% else %}
+            <p class="text-muted-2 mb-0">No separate plan was recorded.</p>
+          {% endif %}
+        </div>
+
+        <div class="record-block">
+          <h4>Doctor's notes</h4>
+          {% if treatment.notes %}
+            <p class="record-text">{{ treatment.notes }}</p>
+          {% else %}
+            <p class="text-muted-2 mb-0">No additional notes.</p>
+          {% endif %}
+        </div>
+
+        {% if treatment.follow_up_date %}
+          <div class="alert alert-info mt-4 mb-0 py-2">
+            <i class="bi bi-calendar2-week me-1"></i>
+            Follow-up advised on <strong>{{ treatment.follow_up_date.strftime("%A, %d %B %Y") }}</strong>.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <a href="{{ url_for('patient.records') }}" class="btn btn-outline-hms">
+      <i class="bi bi-arrow-left me-1"></i>All my records
+    </a>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="hms-card mb-4">
+      <div class="hms-card-header"><h2 class="hms-card-title">Visit details</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Patient</dt><dd>{{ patient.full_name }}</dd>
+          <dt>Patient ID</dt><dd>{{ patient.patient_code }}</dd>
+          <dt>Doctor</dt><dd>Dr. {{ treatment.doctor.full_name }}</dd>
+          <dt>Department</dt><dd>{{ treatment.doctor.department.name }}</dd>
+          <dt>Date</dt><dd>{{ appointment.appointment_date.strftime("%d %b %Y") }}</dd>
+          <dt>Time</dt><dd>{{ appointment.appointment_time.strftime("%H:%M") }}</dd>
+          <dt>Reason given</dt><dd>{{ appointment.reason or "—" }}</dd>
+          <dt>Recorded on</dt><dd>{{ treatment.created_at.strftime("%d %b %Y, %H:%M") }}</dd>
+          {% if treatment.updated_at and treatment.updated_at != treatment.created_at %}
+            <dt>Updated</dt><dd>{{ treatment.updated_at.strftime("%d %b %Y, %H:%M") }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    <div class="alert alert-secondary mb-0" role="alert">
+      <strong class="d-block small mb-1"><i class="bi bi-shield-lock me-1"></i>Private to you</strong>
+      <span class="small">
+        This record belongs to your patient ID only. Nobody else can open it, and
+        hospital staff see it only as part of your treatment history.
+      </span>
+    </div>
+  </div>
+</div>
+{% endblock %}

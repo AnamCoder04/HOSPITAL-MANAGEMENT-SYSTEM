@@ -355,6 +355,33 @@ class AppointmentFilterForm(FlaskForm):
             raise ValidationError("The end date cannot be before the start date.")
 
 
+class TreatmentSearchForm(FlaskForm):
+    """GET filter form for the administrator's treatment records."""
+
+    class Meta:
+        csrf = False
+
+    q = StringField(
+        "Diagnosis, patient or doctor",
+        filters=[strip_whitespace],
+        validators=[Optional(), Length(max=120, message="Search text is too long.")],
+    )
+    doctor_id = SelectField("Doctor", coerce=int, choices=[(0, "All doctors")], validators=[Optional()])
+    patient_id = SelectField("Patient", coerce=int, choices=[(0, "All patients")], validators=[Optional()])
+    submit = SubmitField("Filter")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.doctor_id.choices = [(0, "All doctors")] + [
+            (doctor.id, f"Dr. {doctor.full_name}")
+            for doctor in Doctor.query.join(Doctor.user).order_by(User.full_name).all()
+        ]
+        self.patient_id.choices = [(0, "All patients")] + [
+            (patient.id, f"{patient.full_name} ({patient.patient_code})")
+            for patient in Patient.query.join(Patient.user).order_by(User.full_name).all()
+        ]
+
+
 # ---------------------------------------------------------------------------
 # Patients
 # ---------------------------------------------------------------------------

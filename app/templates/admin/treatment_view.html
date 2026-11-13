@@ -1,0 +1,106 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import status_badge with context %}
+
+{% block title %}Treatment record #{{ treatment.id }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Treatment record{% endblock %}
+{% block page_subtitle %}{{ patient.full_name }} &middot; {{ appointment.appointment_date.strftime("%A, %d %B %Y") }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="alert alert-secondary" role="alert">
+  <i class="bi bi-shield-lock me-1"></i>
+  Clinical records are written by the treating doctor only. Administrators can read
+  them for hospital records and cannot edit them.
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Consultation record</h2>
+          <p class="hms-card-sub">
+            Dr. {{ doctor.full_name }} &middot; {{ doctor.specialization }} &middot;
+            {{ doctor.department.name }}
+          </p>
+        </div>
+        {{ status_badge(appointment) }}
+      </div>
+      <div class="hms-card-body">
+        <div class="record-block mt-0">
+          <h4>Diagnosis</h4>
+          <p class="record-text fs-6 fw-semibold">{{ treatment.diagnosis }}</p>
+        </div>
+        <div class="record-block">
+          <h4>Prescription</h4>
+          <p class="record-text">{{ treatment.prescription or "No medication prescribed." }}</p>
+        </div>
+        <div class="record-block">
+          <h4>Treatment plan</h4>
+          <p class="record-text">{{ treatment.treatment_plan or "No separate plan recorded." }}</p>
+        </div>
+        <div class="record-block">
+          <h4>Doctor's notes</h4>
+          <p class="record-text">{{ treatment.notes or "No additional notes." }}</p>
+        </div>
+        {% if treatment.follow_up_date %}
+          <div class="alert alert-info mt-4 mb-0 py-2">
+            <i class="bi bi-calendar2-week me-1"></i>
+            Follow-up advised on <strong>{{ treatment.follow_up_date.strftime("%A, %d %B %Y") }}</strong>.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a href="{{ url_for('admin.treatments') }}" class="btn btn-outline-hms">
+        <i class="bi bi-arrow-left me-1"></i>All records
+      </a>
+      <a href="{{ url_for('admin.appointment_view', appointment_id=appointment.id) }}"
+         class="btn btn-outline-hms">
+        <i class="bi bi-calendar2-check me-1"></i>Appointment #{{ appointment.id }}
+      </a>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="hms-card mb-4">
+      <div class="hms-card-header"><h2 class="hms-card-title">Patient</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Name</dt><dd>{{ patient.full_name }}</dd>
+          <dt>Patient ID</dt><dd>{{ patient.patient_code }}</dd>
+          <dt>Phone</dt><dd>{{ patient.phone or "—" }}</dd>
+          <dt>Blood group</dt><dd>{{ patient.blood_group or "—" }}</dd>
+          <dt>Visit</dt><dd>{{ appointment.appointment_date.strftime("%d %b %Y") }} at {{ appointment.appointment_time.strftime("%H:%M") }}</dd>
+          <dt>Reason given</dt><dd>{{ appointment.reason or "—" }}</dd>
+        </dl>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <a href="{{ url_for('admin.patient_view', patient_id=patient.id) }}" class="btn btn-sm btn-outline-hms">
+            Patient profile
+          </a>
+          <a href="{{ url_for('admin.treatments', patient_id=patient.id) }}" class="btn btn-sm btn-outline-hms">
+            Their records
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="hms-card">
+      <div class="hms-card-header"><h2 class="hms-card-title">Doctor</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Name</dt><dd>Dr. {{ doctor.full_name }}</dd>
+          <dt>Specialization</dt><dd>{{ doctor.specialization }}</dd>
+          <dt>Department</dt><dd>{{ doctor.department.name }}</dd>
+          <dt>Recorded on</dt><dd>{{ treatment.created_at.strftime("%d %b %Y, %H:%M") }}</dd>
+          {% if treatment.updated_at and treatment.updated_at != treatment.created_at %}
+            <dt>Last updated</dt><dd>{{ treatment.updated_at.strftime("%d %b %Y, %H:%M") }}</dd>
+          {% endif %}
+        </dl>
+        <a href="{{ url_for('admin.doctor_view', doctor_id=doctor.id) }}"
+           class="btn btn-sm btn-outline-hms mt-3">Doctor profile</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -20,7 +20,7 @@ from app.blueprints.patient import patient_bp
 from app.blueprints.patient.forms import DoctorSearchForm, RescheduleForm
 from app.extensions import db
 from app.models import Appointment, AppointmentStatus, Doctor, DoctorAvailability, Role
-from app.services import appointment_service, availability_service
+from app.services import appointment_service, availability_service, treatment_service
 from app.services.stats_service import patient_dashboard_stats, upcoming_appointments_for_patient
 from app.utils.decorators import role_required
 
@@ -179,6 +179,45 @@ def appointments():
         history=appointment_service.past_appointments(patient),
         counts=appointment_service.appointment_counts(patient),
         today=date.today(),
+    )
+
+
+@patient_bp.route("/records")
+@role_required(Role.PATIENT)
+def records():
+    """The patient's own medical history: completed visits and their records."""
+    patient = _current_patient()
+    if patient is None:
+        return redirect(url_for("main.index"))
+
+    return render_template(
+        "patient/records.html",
+        patient=patient,
+        records=treatment_service.patient_history(patient),
+        completed=treatment_service.patient_completed_visits(patient),
+        summary=treatment_service.medical_history_summary(patient),
+        today=date.today(),
+    )
+
+
+@patient_bp.route("/records/<int:treatment_id>")
+@role_required(Role.PATIENT)
+def record_view(treatment_id: int):
+    """One of this patient's own clinical records."""
+    patient = _current_patient()
+    if patient is None:
+        return redirect(url_for("main.index"))
+
+    treatment = treatment_service.patient_treatment(patient, treatment_id)
+    if treatment is None:
+        # Another patient's record must not be distinguishable from a missing one.
+        return ("Not found", 404)
+
+    return render_template(
+        "patient/record_view.html",
+        patient=patient,
+        treatment=treatment,
+        appointment=treatment.appointment,
     )
 
 

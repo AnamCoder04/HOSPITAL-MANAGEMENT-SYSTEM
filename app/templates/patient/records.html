@@ -1,0 +1,124 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import stat_card, status_badge, empty_state with context %}
+
+{% block title %}Medical records &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Medical records{% endblock %}
+{% block page_subtitle %}Your own history only &middot; {{ patient.patient_code }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">{{ stat_card("Completed visits", summary.completed_visits, "bi-check2-circle", "teal", "Consultations attended") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Clinical records", summary.records, "bi-journal-medical", "blue", "Diagnoses on file") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Prescriptions", summary.prescriptions, "bi-capsule", "amber", "Records with medication") }}</div>
+  <div class="col-6 col-xl-3">{{ stat_card("Doctors seen", summary.doctors, "bi-person-badge", "red", "Treating doctors") }}</div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Medical history</h2>
+          <p class="hms-card-sub">Diagnoses, prescriptions and notes from your visits</p>
+        </div>
+      </div>
+
+      {% if records %}
+        <div class="hms-card-body">
+          <ul class="record-timeline">
+            {% for record in records %}
+              <li class="record-entry teal">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                  <div>
+                    <strong>{{ record.diagnosis }}</strong>
+                    <p class="record-meta mb-0">
+                      {{ record.appointment.appointment_date.strftime("%A, %d %B %Y") }}
+                      &middot; Dr. {{ record.doctor.full_name }}
+                      <span class="text-muted-2">({{ record.doctor.specialization }})</span>
+                    </p>
+                  </div>
+                  <a href="{{ url_for('patient.record_view', treatment_id=record.id) }}"
+                     class="btn btn-sm btn-outline-hms align-self-start">
+                    <i class="bi bi-eye me-1"></i>Full record
+                  </a>
+                </div>
+
+                {% if record.prescription %}
+                  <div class="record-block">
+                    <h4>Prescription</h4>
+                    <p class="record-text">{{ record.prescription }}</p>
+                  </div>
+                {% endif %}
+                {% if record.follow_up_date %}
+                  <div class="record-block">
+                    <h4>Follow-up</h4>
+                    <p class="record-text">{{ record.follow_up_date.strftime("%A, %d %B %Y") }}</p>
+                  </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        {{ empty_state("No records yet", "After a visit is completed, your doctor's diagnosis and prescription appear here.", "bi-journal-text") }}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Completed visits</h2>
+          <p class="hms-card-sub">Every consultation you attended</p>
+        </div>
+      </div>
+
+      {% if completed %}
+        <div class="table-responsive">
+          <table class="table hms-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Visit</th>
+                <th scope="col">Doctor</th>
+                <th scope="col" class="text-end">Record</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for appointment in completed %}
+                <tr>
+                  <td class="text-nowrap">
+                    <span class="d-block">{{ appointment.appointment_date.strftime("%d %b %Y") }}</span>
+                    <small class="text-muted-2">{{ appointment.appointment_time.strftime("%H:%M") }}</small>
+                  </td>
+                  <td>
+                    <span class="d-block">Dr. {{ appointment.doctor.full_name }}</span>
+                    <small class="text-muted-2">{{ appointment.doctor.department.name }}</small>
+                  </td>
+                  <td class="text-end">
+                    {% if appointment.treatment %}
+                      <a href="{{ url_for('patient.record_view', treatment_id=appointment.treatment.id) }}"
+                         class="btn btn-sm btn-outline-hms">View</a>
+                    {% else %}
+                      <span class="badge badge-soft-amber">Being written</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="hms-card-body border-top">
+          <p class="form-text mb-0">
+            A visit marked "being written" is complete, but your doctor has not
+            saved the clinical record yet. Check back later.
+          </p>
+        </div>
+      {% else %}
+        {{ empty_state("No completed visits", "Visits appear here once your doctor marks them completed.", "bi-calendar2-x") }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

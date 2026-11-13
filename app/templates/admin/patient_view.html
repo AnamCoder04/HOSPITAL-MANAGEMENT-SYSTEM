@@ -170,7 +170,11 @@
             <li class="align-items-start">
               <span class="recent-avatar"><i class="bi bi-journal-medical"></i></span>
               <span class="recent-main">
-                <strong>{{ treatment.diagnosis }}</strong>
+                <strong>
+                  <a href="{{ url_for('admin.treatment_view', treatment_id=treatment.id) }}">
+                    {{ treatment.diagnosis }}
+                  </a>
+                </strong>
                 <small>
                   {{ treatment.appointment.appointment_date.strftime("%d %b %Y") }}
                   &middot; Dr. {{ treatment.doctor.full_name }}

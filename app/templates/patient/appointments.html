@@ -102,6 +102,7 @@
             <th scope="col">Doctor</th>
             <th scope="col">Reason</th>
             <th scope="col" class="text-end">Status</th>
+            <th scope="col" class="text-end">Record</th>
           </tr>
         </thead>
         <tbody>
@@ -118,6 +119,16 @@
                 {{ status_badge(appointment) }}
                 {% if appointment.cancel_reason %}
                   <small class="d-block text-muted-2">{{ appointment.cancel_reason }}</small>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if appointment.treatment %}
+                  <a href="{{ url_for('patient.record_view', treatment_id=appointment.treatment.id) }}"
+                     class="btn btn-sm btn-outline-hms">
+                    <i class="bi bi-journal-medical me-1"></i>View
+                  </a>
+                {% else %}
+                  <span class="text-muted-2">—</span>
                 {% endif %}
               </td>
             </tr>
