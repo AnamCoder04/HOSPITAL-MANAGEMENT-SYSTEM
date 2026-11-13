@@ -1,0 +1,72 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import empty_state, status_badge with context %}
+{% from "partials/_field.html" import render_field %}
+
+{% block title %}Reschedule appointment &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Reschedule appointment{% endblock %}
+{% block page_subtitle %}Dr. {{ appointment.doctor.full_name }} &middot; currently {{ appointment.appointment_date.strftime("%d %b") }} at {{ appointment.appointment_time.strftime("%H:%M") }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Choose a new time</h2>
+          <p class="hms-card-sub">Only the doctor's open slots are listed</p>
+        </div>
+      </div>
+      <div class="hms-card-body">
+        {% if slots %}
+          <form method="post" novalidate>
+            {{ form.hidden_tag() }}
+            {{ render_field(form.slot_id, help_text="The current slot is released when you confirm.") }}
+            {{ form.submit(class="btn btn-hms") }}
+            <a href="{{ url_for('patient.appointments') }}" class="btn btn-outline-hms ms-2">Cancel</a>
+          </form>
+
+          <div class="mt-4">
+            <p class="form-section-title">Open slots this week</p>
+            <div class="d-flex flex-wrap gap-2">
+              {% for slot in slots %}
+                <span class="badge badge-soft-blue">
+                  {{ slot.available_date.strftime("%a %d %b") }} &middot; {{ slot.label }}
+                </span>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          {{ empty_state("No other slots available", "The doctor has no other open slots this week. Please try again later.", "bi-calendar2-x") }}
+          <a href="{{ url_for('patient.appointments') }}" class="btn btn-outline-hms mt-3">Back to my appointments</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Current appointment</h2>
+          <p class="hms-card-sub">This is what will move</p>
+        </div>
+        {{ status_badge(appointment) }}
+      </div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Doctor</dt><dd>Dr. {{ appointment.doctor.full_name }}</dd>
+          <dt>Specialization</dt><dd>{{ appointment.doctor.specialization }}</dd>
+          <dt>Department</dt><dd>{{ appointment.doctor.department.name }}</dd>
+          <dt>Date</dt><dd>{{ appointment.appointment_date.strftime("%A, %d %B %Y") }}</dd>
+          <dt>Time</dt><dd>{{ appointment.appointment_time.strftime("%H:%M") }}</dd>
+          <dt>Reason</dt><dd>{{ appointment.reason or "—" }}</dd>
+        </dl>
+        <p class="form-text mb-0 mt-3">
+          Rescheduling keeps the same appointment record and doctor; only the
+          date and time change. The old slot becomes available to other patients.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

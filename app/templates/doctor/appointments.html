@@ -1,0 +1,125 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import empty_state, status_badge with context %}
+{% from "partials/_field.html" import render_field %}
+
+{% block title %}My appointments &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}My appointments{% endblock %}
+{% block page_subtitle %}Only appointments assigned to you{% endblock %}
+
+{% block dashboard_content %}
+<!-- View tabs -->
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% for key, label, count in [
+      ("upcoming", "Upcoming", counts.upcoming),
+      ("today", "Today", counts.today),
+      ("week", "This week", counts.week),
+      ("all", "All", counts.all)
+  ] %}
+    <a href="{{ url_for('doctor.appointments', view=key) }}"
+       class="btn btn-sm {{ 'btn-hms' if view == key else 'btn-outline-hms' }}">
+      {{ label }} <span class="badge {{ 'badge-soft-blue' if view == key else 'badge-soft-teal' }} ms-1">{{ count }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+<div class="hms-card mb-4">
+  <div class="hms-card-header">
+    <div>
+      <h2 class="hms-card-title">
+        {% if view == "today" %}Today's appointments
+        {% elif view == "week" %}Appointments this week
+        {% elif view == "all" %}All my appointments
+        {% else %}Upcoming appointments{% endif %}
+      </h2>
+      <p class="hms-card-sub">{{ appointments|length }} shown</p>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get" action="{{ url_for('doctor.appointments') }}">
+    <input type="hidden" name="view" value="{{ view }}">
+    <div class="row g-2 align-items-start">
+      <div class="col-md-5">{{ render_field(form.q, placeholder="Patient name") }}</div>
+      <div class="col-md-4">{{ render_field(form.status) }}</div>
+      <div class="col-md-3 d-flex gap-2 pt-md-4">
+        <button type="submit" class="btn btn-hms flex-grow-1 mt-md-2">
+          <i class="bi bi-search me-1"></i>Apply
+        </button>
+        <a href="{{ url_for('doctor.appointments', view=view) }}" class="btn btn-outline-hms mt-md-2">Reset</a>
+      </div>
+    </div>
+  </form>
+
+  {% if appointments %}
+    <div class="table-responsive">
+      <table class="table hms-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Time</th>
+            <th scope="col">Patient</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for appointment in appointments %}
+            <tr>
+              <td class="text-nowrap">{{ appointment.appointment_date.strftime("%a, %d %b %Y") }}</td>
+              <td class="text-nowrap fw-semibold">{{ appointment.appointment_time.strftime("%H:%M") }}</td>
+              <td>
+                <span class="d-block">{{ appointment.patient.full_name }}</span>
+                <small class="text-muted-2">{{ appointment.patient.patient_code }}</small>
+              </td>
+              <td class="text-muted-2 text-truncate" style="max-width: 180px;">
+                {{ appointment.reason or "—" }}
+              </td>
+              <td>{{ status_badge(appointment) }}</td>
+              <td class="text-end">
+                <div class="table-actions">
+                  <a href="{{ url_for('doctor.appointment_view', appointment_id=appointment.id) }}"
+                     class="btn btn-sm btn-outline-hms" title="View appointment">
+                    <i class="bi bi-eye"></i>
+                  </a>
+
+                  {% if appointment.status == "booked" and appointment.appointment_date <= today %}
+                    <form id="completeAppointment{{ appointment.id }}" method="post"
+                          action="{{ url_for('doctor.appointment_complete', appointment_id=appointment.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                    <button type="button" class="btn btn-sm btn-teal" title="Mark completed"
+                            data-confirm-form="#completeAppointment{{ appointment.id }}"
+                            data-confirm-title="Mark as completed?"
+                            data-confirm-text="The visit with {{ appointment.patient.full_name }} on {{ appointment.appointment_date.strftime('%d %b') }} will be marked completed. This is part of the patient's history and cannot be undone."
+                            data-confirm-button="Mark completed" data-confirm-tone="success">
+                      <i class="bi bi-check2-circle"></i>
+                    </button>
+                  {% endif %}
+
+                  {% if appointment.status == "booked" %}
+                    <form id="cancelDoctorAppointment{{ appointment.id }}" method="post"
+                          action="{{ url_for('doctor.appointment_cancel', appointment_id=appointment.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-danger" title="Cancel appointment"
+                            data-confirm-form="#cancelDoctorAppointment{{ appointment.id }}"
+                            data-confirm-title="Cancel this appointment?"
+                            data-confirm-text="{{ appointment.patient.full_name }} on {{ appointment.appointment_date.strftime('%d %b') }} at {{ appointment.appointment_time.strftime('%H:%M') }} will be cancelled and the slot released."
+                            data-confirm-button="Cancel appointment" data-confirm-tone="danger">
+                      <i class="bi bi-x-circle"></i>
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {{ empty_state("No appointments here", "Change the view or clear the filters.", "bi-calendar2-x") }}
+  {% endif %}
+</div>
+
+{% include "partials/_confirm_modal.html" %}
+{% endblock %}

@@ -36,7 +36,7 @@ from wtforms.validators import (
 from sqlalchemy import func
 
 from app.extensions import db
-from app.models import Department, Doctor, Patient, User
+from app.models import AppointmentStatus, Department, Doctor, Patient, User
 
 PHONE_PATTERN = r"^\+?[0-9][0-9\s\-]{8,14}$"
 PASSWORD_PATTERN = r"^(?=.*[A-Za-z])(?=.*\d).+$"
@@ -311,6 +311,48 @@ class DoctorEditForm(DoctorFormBase):
     """Edit an existing doctor (the password is not changed here)."""
 
     submit = SubmitField("Save changes")
+
+
+# ---------------------------------------------------------------------------
+# Appointments
+# ---------------------------------------------------------------------------
+class AppointmentFilterForm(FlaskForm):
+    """GET filter form for the administrator's appointment list."""
+
+    class Meta:
+        csrf = False
+
+    q = StringField(
+        "Patient or doctor",
+        filters=[strip_whitespace],
+        validators=[Optional(), Length(max=120, message="Search text is too long.")],
+    )
+    doctor_id = SelectField("Doctor", coerce=int, choices=[(0, "All doctors")], validators=[Optional()])
+    patient_id = SelectField("Patient", coerce=int, choices=[(0, "All patients")], validators=[Optional()])
+    status = SelectField(
+        "Status",
+        choices=[("", "All statuses")]
+        + [(value, value.title()) for value in AppointmentStatus.ALL],
+        validators=[Optional()],
+    )
+    date_from = DateField("From date", format="%Y-%m-%d", validators=[Optional()])
+    date_to = DateField("To date", format="%Y-%m-%d", validators=[Optional()])
+    submit = SubmitField("Filter")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.doctor_id.choices = [(0, "All doctors")] + [
+            (doctor.id, f"Dr. {doctor.full_name}")
+            for doctor in Doctor.query.join(Doctor.user).order_by(User.full_name).all()
+        ]
+        self.patient_id.choices = [(0, "All patients")] + [
+            (patient.id, f"{patient.full_name} ({patient.patient_code})")
+            for patient in Patient.query.join(Patient.user).order_by(User.full_name).all()
+        ]
+
+    def validate_date_to(self, field: DateField) -> None:
+        if field.data and self.date_from.data and field.data < self.date_from.data:
+            raise ValidationError("The end date cannot be before the start date.")
 
 
 # ---------------------------------------------------------------------------

@@ -17,7 +17,7 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from app.blueprints.patient import patient_bp
-from app.blueprints.patient.forms import DoctorSearchForm
+from app.blueprints.patient.forms import DoctorSearchForm, RescheduleForm
 from app.extensions import db
 from app.models import Appointment, AppointmentStatus, Doctor, DoctorAvailability, Role
 from app.services import appointment_service, availability_service
@@ -178,6 +178,73 @@ def appointments():
         upcoming=appointment_service.upcoming_appointments(patient),
         history=appointment_service.past_appointments(patient),
         counts=appointment_service.appointment_counts(patient),
+        today=date.today(),
+    )
+
+
+@patient_bp.route("/appointments/<int:appointment_id>/reschedule", methods=["GET", "POST"])
+@role_required(Role.PATIENT)
+def reschedule_appointment(appointment_id: int):
+    """Move a booked appointment to another open slot with the same doctor."""
+    patient = _current_patient()
+    if patient is None:
+        return redirect(url_for("main.index"))
+
+    appointment = appointment_service.patient_appointment(patient, appointment_id)
+    if appointment is None:
+        return ("Not found", 404)
+
+    if appointment.status != AppointmentStatus.BOOKED:
+        flash("Only a booked appointment can be rescheduled.", "warning")
+        return redirect(url_for("patient.appointments"))
+    if not appointment_service.can_cancel(appointment):
+        flash("This appointment has already started and cannot be rescheduled.", "warning")
+        return redirect(url_for("patient.appointments"))
+
+    # Only slots the doctor still offers, excluding the current one.
+    grouped = availability_service.patient_slots_by_date(appointment.doctor)
+    slots = [
+        slot
+        for day_slots in grouped.values()
+        for slot in day_slots
+        if slot.id != appointment.availability_id and not slot.is_full
+    ]
+
+    form = RescheduleForm()
+    form.slot_id.choices = [
+        (
+            slot.id,
+            f"{slot.available_date.strftime('%a, %d %b')} at {slot.label} "
+            f"({slot.slots_left} place{'s' if slot.slots_left != 1 else ''} left)",
+        )
+        for slot in slots
+    ]
+
+    if form.validate_on_submit():
+        slot = next((item for item in slots if item.id == form.slot_id.data), None)
+        if slot is None:
+            flash("Choose one of the offered times.", "warning")
+        else:
+            try:
+                appointment_service.reschedule_appointment(patient, appointment, slot)
+            except ValueError as error:
+                flash(str(error), "warning")
+            else:
+                flash(
+                    "Appointment moved to "
+                    f"{appointment.appointment_date.strftime('%a, %d %b')} at "
+                    f"{appointment.appointment_time.strftime('%H:%M')}.",
+                    "success",
+                )
+                return redirect(
+                    url_for("patient.booking_confirmation", appointment_id=appointment.id)
+                )
+
+    return render_template(
+        "patient/reschedule.html",
+        appointment=appointment,
+        form=form,
+        slots=slots,
         today=date.today(),
     )
 

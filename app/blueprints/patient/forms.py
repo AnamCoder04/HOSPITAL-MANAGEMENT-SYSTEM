@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, SubmitField
-from wtforms.validators import Length, Optional
+from wtforms.validators import DataRequired, Length, Optional
 
 from app.services import availability_service
 
@@ -46,3 +46,21 @@ class DoctorSearchForm(FlaskForm):
             (department.id, department.name)
             for department in availability_service.department_options()
         ]
+
+
+class RescheduleForm(FlaskForm):
+    """Pick one of the doctor's currently open slots.
+
+    The route fills `slot_id.choices` with the slots that are actually open,
+    and `appointment_service.reschedule_appointment` re-checks the chosen slot
+    so a hand-edited request cannot move an appointment onto a full or past
+    slot.
+    """
+
+    slot_id = SelectField(
+        "New time",
+        coerce=int,
+        choices=[],
+        validators=[DataRequired(message="Choose a new time.")],
+    )
+    submit = SubmitField("Confirm new time")

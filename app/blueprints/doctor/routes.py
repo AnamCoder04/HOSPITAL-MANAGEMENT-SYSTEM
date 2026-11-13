@@ -16,10 +16,14 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from app.blueprints.doctor import doctor_bp
-from app.blueprints.doctor.forms import AvailabilityEditForm, AvailabilityForm
+from app.blueprints.doctor.forms import (
+    AppointmentFilterForm,
+    AvailabilityEditForm,
+    AvailabilityForm,
+)
 from app.extensions import db
-from app.models import DoctorAvailability, Role
-from app.services import availability_service
+from app.models import Appointment, AppointmentStatus, DoctorAvailability, Role
+from app.services import appointment_service, availability_service
 from app.services.stats_service import doctor_dashboard_stats, todays_appointments_for_doctor
 from app.utils.decorators import role_required
 
@@ -47,6 +51,120 @@ def dashboard():
         todays_appointments=todays_appointments_for_doctor(doctor),
         today=date.today(),
     )
+
+
+# ---------------------------------------------------------------------------
+# Appointments
+# ---------------------------------------------------------------------------
+@doctor_bp.route("/appointments")
+@role_required(Role.DOCTOR)
+def appointments():
+    """The doctor's own appointments: today, upcoming, this week or all."""
+    doctor = _current_doctor()
+    if doctor is None:
+        return redirect(url_for("main.index"))
+
+    form = AppointmentFilterForm(request.args)
+    form.validate()
+
+    # Filtering by status only makes sense across all appointments, so that
+    # combination defaults to the "all" view instead of hiding every row.
+    view = (request.args.get("view") or "") or ("all" if form.status.data else "upcoming")
+    if view not in ("today", "upcoming", "week", "all"):
+        view = "upcoming"
+
+    appointments_list = appointment_service.doctor_appointments(
+        doctor,
+        view=view,
+        status="" if form.status.errors else (form.status.data or ""),
+        q=form.q.data or "",
+    )
+
+    return render_template(
+        "doctor/appointments.html",
+        doctor=doctor,
+        form=form,
+        view=view,
+        appointments=appointments_list,
+        counts=appointment_service.doctor_appointment_counts(doctor),
+        today=date.today(),
+    )
+
+
+@doctor_bp.route("/appointments/<int:appointment_id>")
+@role_required(Role.DOCTOR)
+def appointment_view(appointment_id: int):
+    """One of this doctor's own appointments."""
+    doctor = _current_doctor()
+    if doctor is None:
+        return redirect(url_for("main.index"))
+
+    appointment = Appointment.query.filter_by(
+        id=appointment_id, doctor_id=doctor.id
+    ).first_or_404()
+
+    return render_template(
+        "doctor/appointment_view.html",
+        doctor=doctor,
+        appointment=appointment,
+        today=date.today(),
+        can_complete=(
+            appointment.status == AppointmentStatus.BOOKED
+            and appointment.appointment_date <= date.today()
+        ),
+    )
+
+
+@doctor_bp.route("/appointments/<int:appointment_id>/complete", methods=["POST"])
+@role_required(Role.DOCTOR)
+def appointment_complete(appointment_id: int):
+    """Mark one of this doctor's own booked appointments as completed."""
+    doctor = _current_doctor()
+    if doctor is None:
+        return redirect(url_for("main.index"))
+
+    appointment = Appointment.query.filter_by(
+        id=appointment_id, doctor_id=doctor.id
+    ).first_or_404()
+
+    try:
+        appointment_service.complete_appointment(doctor, appointment)
+    except ValueError as error:
+        flash(str(error), "warning")
+    else:
+        flash(
+            f"Appointment with {appointment.patient.full_name} was marked completed.",
+            "success",
+        )
+
+    return redirect(url_for("doctor.appointment_view", appointment_id=appointment.id))
+
+
+@doctor_bp.route("/appointments/<int:appointment_id>/cancel", methods=["POST"])
+@role_required(Role.DOCTOR)
+def appointment_cancel(appointment_id: int):
+    """Cancel one of this doctor's own booked appointments."""
+    doctor = _current_doctor()
+    if doctor is None:
+        return redirect(url_for("main.index"))
+
+    appointment = Appointment.query.filter_by(
+        id=appointment_id, doctor_id=doctor.id
+    ).first_or_404()
+    reason = (request.form.get("reason") or "").strip()[:255]
+
+    try:
+        appointment_service.cancel_by_doctor(doctor, appointment, reason)
+    except ValueError as error:
+        flash(str(error), "warning")
+    else:
+        flash(
+            f"Appointment with {appointment.patient.full_name} was cancelled. "
+            "The slot is free again.",
+            "success",
+        )
+
+    return redirect(url_for("doctor.appointment_view", appointment_id=appointment.id))
 
 
 # ---------------------------------------------------------------------------

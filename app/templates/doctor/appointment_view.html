@@ -1,0 +1,115 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import status_badge with context %}
+
+{% block title %}Appointment #{{ appointment.id }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Appointment details{% endblock %}
+{% block page_subtitle %}{{ appointment.appointment_date.strftime("%A, %d %B %Y") }} &middot; {{ appointment.appointment_time.strftime("%H:%M") }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="hms-card mb-4">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">{{ appointment.patient.full_name }}</h2>
+          <p class="hms-card-sub">{{ appointment.patient.patient_code }}</p>
+        </div>
+        {{ status_badge(appointment) }}
+      </div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Date</dt><dd>{{ appointment.appointment_date.strftime("%A, %d %B %Y") }}</dd>
+          <dt>Time</dt><dd>{{ appointment.appointment_time.strftime("%H:%M") }}</dd>
+          <dt>Reason for visit</dt><dd>{{ appointment.reason or "—" }}</dd>
+          <dt>Patient phone</dt><dd>{{ appointment.patient.phone or "—" }}</dd>
+          <dt>Blood group</dt><dd>{{ appointment.patient.blood_group or "—" }}</dd>
+          <dt>Allergies</dt><dd>{{ appointment.patient.allergies or "None recorded" }}</dd>
+          {% if appointment.cancel_reason %}
+            <dt>Cancellation reason</dt><dd>{{ appointment.cancel_reason }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Treatment record</h2>
+          <p class="hms-card-sub">Clinical notes for this visit</p>
+        </div>
+      </div>
+      <div class="hms-card-body">
+        {% if appointment.treatment %}
+          <dl class="detail-list px-0 mb-0">
+            <dt>Diagnosis</dt><dd>{{ appointment.treatment.diagnosis }}</dd>
+            <dt>Prescription</dt><dd>{{ appointment.treatment.prescription or "—" }}</dd>
+            <dt>Plan</dt><dd>{{ appointment.treatment.treatment_plan or "—" }}</dd>
+            {% if appointment.treatment.follow_up_date %}
+              <dt>Follow-up</dt><dd>{{ appointment.treatment.follow_up_date.strftime("%d %b %Y") }}</dd>
+            {% endif %}
+          </dl>
+        {% else %}
+          <p class="form-text mb-0">
+            No treatment record has been written for this appointment yet.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    {% if appointment.status == "booked" %}
+      <div class="hms-card mb-4">
+        <div class="hms-card-header"><h2 class="hms-card-title">Update status</h2></div>
+        <div class="hms-card-body">
+          {% if can_complete %}
+            <form method="post" action="{{ url_for('doctor.appointment_complete', appointment_id=appointment.id) }}" class="mb-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-teal w-100">
+                <i class="bi bi-check2-circle me-1"></i>Mark as completed
+              </button>
+            </form>
+          {% else %}
+            <p class="form-text">
+              <i class="bi bi-clock me-1"></i>
+              This appointment is in the future, so it cannot be completed yet.
+            </p>
+          {% endif %}
+
+          <form method="post" action="{{ url_for('doctor.appointment_cancel', appointment_id=appointment.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <label class="form-label" for="reason">Cancellation reason (optional)</label>
+              <textarea class="form-control" id="reason" name="reason" rows="2" maxlength="255"
+                        placeholder="e.g. Emergency, patient requested"></textarea>
+            </div>
+            <button type="submit" class="btn btn-outline-danger w-100">
+              <i class="bi bi-x-circle me-1"></i>Cancel appointment
+            </button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle me-1"></i>
+        This appointment is {{ appointment.status }} and is kept as part of the
+        patient's history. Its status can no longer change.
+      </div>
+    {% endif %}
+
+    <div class="hms-card">
+      <div class="hms-card-header"><h2 class="hms-card-title">Patient</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Patient ID</dt><dd>{{ appointment.patient.patient_code }}</dd>
+          <dt>Email</dt><dd class="text-break">{{ appointment.patient.email }}</dd>
+          <dt>Phone</dt><dd>{{ appointment.patient.phone or "—" }}</dd>
+        </dl>
+        <a href="{{ url_for('doctor.appointments', view='all') }}" class="btn btn-outline-hms btn-sm mt-3">
+          <i class="bi bi-arrow-left me-1"></i>All appointments
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

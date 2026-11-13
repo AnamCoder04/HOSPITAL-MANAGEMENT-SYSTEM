@@ -1,0 +1,101 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import status_badge with context %}
+
+{% block title %}Appointment #{{ appointment.id }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Appointment details{% endblock %}
+{% block page_subtitle %}{{ appointment.appointment_date.strftime("%A, %d %B %Y") }} &middot; {{ appointment.appointment_time.strftime("%H:%M") }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="hms-card mb-4">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Booking #{{ appointment.id }}</h2>
+          <p class="hms-card-sub">Booked {{ appointment.created_at.strftime("%d %b %Y, %H:%M") }}</p>
+        </div>
+        {{ status_badge(appointment) }}
+      </div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Date</dt><dd>{{ appointment.appointment_date.strftime("%A, %d %B %Y") }}</dd>
+          <dt>Time</dt><dd>{{ appointment.appointment_time.strftime("%H:%M") }}</dd>
+          <dt>Patient</dt><dd>{{ appointment.patient.full_name }} ({{ appointment.patient.patient_code }})</dd>
+          <dt>Patient contact</dt><dd>{{ appointment.patient.phone or "—" }}</dd>
+          <dt>Doctor</dt><dd>Dr. {{ appointment.doctor.full_name }}</dd>
+          <dt>Department</dt><dd>{{ appointment.doctor.department.name }}</dd>
+          <dt>Reason</dt><dd>{{ appointment.reason or "—" }}</dd>
+          {% if appointment.cancel_reason %}
+            <dt>Cancellation reason</dt><dd>{{ appointment.cancel_reason }}</dd>
+          {% endif %}
+          {% if appointment.treatment %}
+            <dt>Treatment record</dt>
+            <dd>{{ appointment.treatment.diagnosis }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if appointment.status == "booked" %}
+      <div class="hms-card">
+        <div class="hms-card-header">
+          <div>
+            <h2 class="hms-card-title">Cancel this appointment</h2>
+            <p class="hms-card-sub">The slot is released immediately</p>
+          </div>
+        </div>
+        <div class="hms-card-body">
+          <form method="post" action="{{ url_for('admin.appointment_cancel', appointment_id=appointment.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <label class="form-label" for="reason">Reason (optional)</label>
+              <textarea class="form-control" id="reason" name="reason" rows="2"
+                        maxlength="255" placeholder="e.g. Doctor unavailable, patient requested"></textarea>
+            </div>
+            <button type="submit" class="btn btn-outline-danger">
+              <i class="bi bi-x-circle me-1"></i>Cancel appointment
+            </button>
+            <a href="{{ url_for('admin.appointments') }}" class="btn btn-outline-hms ms-2">Back to list</a>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-info mb-0" role="alert">
+        <i class="bi bi-info-circle me-1"></i>
+        A {{ appointment.status }} appointment is part of the medical history and cannot be
+        cancelled or completed again.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="col-xl-4">
+    <div class="hms-card mb-4">
+      <div class="hms-card-header"><h2 class="hms-card-title">Patient</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Name</dt><dd>{{ appointment.patient.full_name }}</dd>
+          <dt>Patient ID</dt><dd>{{ appointment.patient.patient_code }}</dd>
+          <dt>Phone</dt><dd>{{ appointment.patient.phone or "—" }}</dd>
+          <dt>Blood group</dt><dd>{{ appointment.patient.blood_group or "—" }}</dd>
+        </dl>
+        <a href="{{ url_for('admin.patient_view', patient_id=appointment.patient.id) }}"
+           class="btn btn-outline-hms btn-sm mt-3">Patient profile</a>
+      </div>
+    </div>
+
+    <div class="hms-card">
+      <div class="hms-card-header"><h2 class="hms-card-title">Doctor</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Name</dt><dd>Dr. {{ appointment.doctor.full_name }}</dd>
+          <dt>Specialization</dt><dd>{{ appointment.doctor.specialization }}</dd>
+          <dt>Room</dt><dd>{{ appointment.doctor.room_no or "—" }}</dd>
+          <dt>Fee</dt><dd>&#8377;{{ "%.2f"|format(appointment.doctor.consultation_fee) }}</dd>
+        </dl>
+        <a href="{{ url_for('admin.doctor_view', doctor_id=appointment.doctor.id) }}"
+           class="btn btn-outline-hms btn-sm mt-3">Doctor profile</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

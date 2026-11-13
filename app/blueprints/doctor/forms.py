@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from flask_wtf import FlaskForm
-from wtforms import DateField, IntegerField, SubmitField, TimeField
-from wtforms.validators import DataRequired, InputRequired, NumberRange
+from wtforms import DateField, IntegerField, SelectField, StringField, SubmitField, TimeField
+from wtforms.validators import DataRequired, InputRequired, Length, NumberRange, Optional
+
+from app.models import AppointmentStatus
 
 
 class AvailabilityForm(FlaskForm):
@@ -45,3 +47,33 @@ class AvailabilityEditForm(AvailabilityForm):
     """Same fields, different button label."""
 
     submit = SubmitField("Save changes")
+
+
+class AppointmentFilterForm(FlaskForm):
+    """GET filter form for a doctor's own appointment list."""
+
+    class Meta:
+        csrf = False
+
+    view = SelectField(
+        "View",
+        choices=[
+            ("upcoming", "Upcoming"),
+            ("today", "Today"),
+            ("week", "This week"),
+            ("all", "All appointments"),
+        ],
+        default="upcoming",
+        validators=[Optional()],
+    )
+    status = SelectField(
+        "Status",
+        choices=[("", "All statuses")] + [(value, value.title()) for value in AppointmentStatus.ALL],
+        validators=[Optional()],
+    )
+    q = StringField(
+        "Patient name",
+        filters=[lambda value: value.strip() if isinstance(value, str) else value],
+        validators=[Optional(), Length(max=120, message="Search text is too long.")],
+    )
+    submit = SubmitField("Apply")

@@ -19,6 +19,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.blueprints.admin import admin_bp
 from app.blueprints.admin.forms import (
+    AppointmentFilterForm,
     DepartmentForm,
     DepartmentSearchForm,
     DoctorCreateForm,
@@ -28,7 +29,7 @@ from app.blueprints.admin.forms import (
 )
 from app.extensions import db
 from app.models import Appointment, Department, Doctor, Patient, Role
-from app.services import department_service, doctor_service, patient_service
+from app.services import appointment_service, department_service, doctor_service, patient_service
 from app.services.stats_service import (
     admin_dashboard_stats,
     appointment_status_chart,
@@ -341,12 +342,74 @@ def patient_toggle(patient_id: int):
 @admin_bp.route("/appointments")
 @role_required(Role.ADMIN)
 def appointments():
-    """All appointments across every doctor and patient."""
-    appointments_list = Appointment.query.order_by(
-        Appointment.appointment_date.desc(),
-        Appointment.appointment_time.desc(),
-    ).all()
-    return render_template("admin/appointments.html", appointments=appointments_list)
+    """All appointments with search, doctor/patient/date and status filters."""
+    form = AppointmentFilterForm(request.args)
+    form.validate()  # GET form: invalid input is shown inline and ignored
+
+    page = request.args.get("page", 1, type=int) or 1
+    pager = appointment_service.search_appointments(
+        q=form.q.data or "",
+        doctor_id=0 if form.doctor_id.errors else (form.doctor_id.data or 0),
+        patient_id=0 if form.patient_id.errors else (form.patient_id.data or 0),
+        status="" if form.status.errors else (form.status.data or ""),
+        date_from=None if form.date_from.errors else form.date_from.data,
+        date_to=None if form.date_to.errors else form.date_to.data,
+        page=page,
+        per_page=current_app.config["ITEMS_PER_PAGE"],
+    )
+
+    filters = {
+        key: value
+        for key, value in {
+            "q": form.q.data,
+            "doctor_id": form.doctor_id.data if form.doctor_id.data else "",
+            "patient_id": form.patient_id.data if form.patient_id.data else "",
+            "status": form.status.data,
+            "date_from": form.date_from.data.isoformat() if form.date_from.data else "",
+            "date_to": form.date_to.data.isoformat() if form.date_to.data else "",
+        }.items()
+        if value
+    }
+
+    return render_template(
+        "admin/appointments.html",
+        form=form,
+        pager=pager,
+        appointments=pager.items,
+        filters=filters,
+        total_appointments=Appointment.query.count(),
+        today=date.today(),
+    )
+
+
+@admin_bp.route("/appointments/<int:appointment_id>")
+@role_required(Role.ADMIN)
+def appointment_view(appointment_id: int):
+    """Full details of one appointment, with cancellation."""
+    appointment = db.get_or_404(Appointment, appointment_id)
+    return render_template("admin/appointment_view.html", appointment=appointment, today=date.today())
+
+
+@admin_bp.route("/appointments/<int:appointment_id>/cancel", methods=["POST"])
+@role_required(Role.ADMIN)
+def appointment_cancel(appointment_id: int):
+    """Cancel a booked appointment; completed visits are history and stay."""
+    appointment = db.get_or_404(Appointment, appointment_id)
+    reason = (request.form.get("reason") or "").strip()[:255]
+
+    try:
+        appointment_service.cancel_by_admin(appointment, reason)
+    except ValueError as error:
+        flash(str(error), "warning")
+    else:
+        flash(
+            f"Appointment with {appointment.patient.full_name} on "
+            f"{appointment.appointment_date.strftime('%d %b')} was cancelled. "
+            "The slot is free again.",
+            "success",
+        )
+
+    return redirect(url_for("admin.appointment_view", appointment_id=appointment.id))
 
 
 @admin_bp.route("/departments")
