@@ -22,6 +22,7 @@ from app.extensions import db
 from app.models import (
     Appointment,
     AppointmentStatus,
+    Department,
     Doctor,
     DoctorAvailability,
     Patient,
@@ -277,8 +278,14 @@ def toggle_slot(slot: DoctorAvailability) -> bool:
 # ---------------------------------------------------------------------------
 # Patient side
 # ---------------------------------------------------------------------------
-def bookable_doctors(term: str = "") -> list[Doctor]:
-    """Doctors a patient may book with: enabled, active account, active department."""
+def bookable_doctors(
+    name: str = "", specialization: str = "", department_id: int = 0
+) -> list[Doctor]:
+    """Doctors a patient may book with, filtered by name/specialization/department.
+
+    Only doctors who are enabled, whose account is active and whose department
+    is still active can appear - the same rule the booking service enforces.
+    """
     query = (
         Doctor.query.join(Doctor.user)
         .join(Doctor.department)
@@ -286,14 +293,50 @@ def bookable_doctors(term: str = "") -> list[Doctor]:
             Doctor.is_available.is_(True),
             User.is_active.is_(True),
             User.role == Role.DOCTOR,
+            Department.is_active.is_(True),
         )
     )
-    if term:
-        like = f"%{term.strip()}%"
-        query = query.filter(
-            Doctor.specialization.ilike(like) | User.full_name.ilike(like)
-        )
+
+    if name:
+        query = query.filter(User.full_name.ilike(f"%{name.strip()}%"))
+    if specialization:
+        query = query.filter(Doctor.specialization == specialization)
+    if department_id:
+        query = query.filter(Doctor.department_id == department_id)
+
     return query.order_by(Doctor.specialization, User.full_name).all()
+
+
+def department_options() -> list[Department]:
+    """Active departments for the patient search filters."""
+    return Department.query.filter_by(is_active=True).order_by(Department.name).all()
+
+
+def doctor_count_by_department() -> dict[int, int]:
+    """Bookable doctors per department, shown on the department chips."""
+    counts: dict[int, int] = {}
+    for doctor in bookable_doctors():
+        counts[doctor.department_id] = counts.get(doctor.department_id, 0) + 1
+    return counts
+
+
+def specialization_options() -> list[str]:
+    """Distinct specializations among doctors a patient can book."""
+    rows = (
+        db.session.query(Doctor.specialization)
+        .join(Doctor.user)
+        .join(Doctor.department)
+        .filter(
+            Doctor.is_available.is_(True),
+            User.is_active.is_(True),
+            User.role == Role.DOCTOR,
+            Department.is_active.is_(True),
+        )
+        .distinct()
+        .order_by(Doctor.specialization)
+        .all()
+    )
+    return [row[0] for row in rows]
 
 
 def book_slot(patient: Patient, slot: DoctorAvailability, reason: str = "") -> Appointment:
@@ -306,22 +349,25 @@ def book_slot(patient: Patient, slot: DoctorAvailability, reason: str = "") -> A
         raise ValueError("This slot is no longer open for booking.")
     if _is_past(slot):
         raise ValueError("That slot has already passed. Please choose another time.")
-    if slot.is_full:
-        raise ValueError("This slot is fully booked. Please choose another time.")
     if not slot.doctor.is_bookable:
         raise ValueError("This doctor is not accepting bookings at the moment.")
 
+    # "Don't book the same appointment twice": same patient, same slot, still
+    # active. Checked before capacity so a patient who already holds the slot
+    # gets the accurate message even when it is full.
     already = Appointment.query.filter(
         Appointment.patient_id == patient.id,
-        Appointment.doctor_id == slot.doctor_id,
-        Appointment.appointment_date == slot.available_date,
+        Appointment.availability_id == slot.id,
         Appointment.status != AppointmentStatus.CANCELLED,
     ).first()
     if already is not None:
         raise ValueError(
-            "You already have an appointment with this doctor that day. "
-            "Cancel it first if you need a different time."
+            "You have already booked this slot. Choose a different time, or cancel "
+            "the existing appointment first."
         )
+
+    if slot.is_full:
+        raise ValueError("This slot is fully booked. Please choose another time.")
 
     # Each booking inside a multi-patient slot gets its own start time, which
     # keeps the database's one-active-booking-per-moment index happy.
@@ -338,12 +384,14 @@ def book_slot(patient: Patient, slot: DoctorAvailability, reason: str = "") -> A
         status=AppointmentStatus.BOOKED,
         reason=(reason or "").strip() or None,
     )
-    db.session.add(appointment)
-
     try:
+        db.session.add(appointment)
+        # flush runs the INSERT inside this transaction, so the partial unique
+        # indexes on the appointments table are checked *before* we commit.
+        db.session.flush()
         db.session.commit()
     except IntegrityError:
-        # Someone booked the same moment in the meantime.
+        # Someone booked the same moment between our checks and the insert.
         db.session.rollback()
         raise ValueError("That time was just taken. Please choose another slot.")
 

@@ -54,6 +54,15 @@ class Appointment(TimestampMixin, db.Model):
             unique=True,
             sqlite_where=db.text("status != 'cancelled'"),
         ),
+        # The same patient cannot hold two active bookings for the same
+        # moment with the same doctor. Cancelled rows are excluded, so a
+        # patient can book again after cancelling.
+        db.Index(
+            "uq_active_patient_slot",
+            "patient_id", "doctor_id", "appointment_date", "appointment_time",
+            unique=True,
+            sqlite_where=db.text("status != 'cancelled'"),
+        ),
         db.Index("ix_appointments_doctor_date", "doctor_id", "appointment_date"),
         db.Index("ix_appointments_patient_date", "patient_id", "appointment_date"),
     )

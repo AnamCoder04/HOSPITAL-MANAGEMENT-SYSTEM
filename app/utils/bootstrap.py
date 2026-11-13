@@ -69,6 +69,28 @@ def ensure_schema_upgrades(app: Flask) -> None:
         db.session.commit()
         app.logger.info("Schema upgrade: added doctors.qualifications")
 
+    # Task 11: one active booking per patient/doctor/moment. The partial index
+    # ignores cancelled rows, so cancelling frees the slot again.
+    if "appointments" in inspector.get_table_names():
+        indexes = {index["name"] for index in inspector.get_indexes("appointments")}
+        if "uq_active_patient_slot" not in indexes:
+            try:
+                db.session.execute(
+                    text(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS uq_active_patient_slot "
+                        "ON appointments (patient_id, doctor_id, appointment_date, appointment_time) "
+                        "WHERE status != 'cancelled'"
+                    )
+                )
+                db.session.commit()
+                app.logger.info("Schema upgrade: added uq_active_patient_slot index")
+            except Exception as error:  # pragma: no cover - only on dirty data
+                db.session.rollback()
+                app.logger.warning(
+                    "Could not create uq_active_patient_slot (duplicate bookings exist?): %s",
+                    error,
+                )
+
 
 def ensure_admin(app: Flask) -> User | None:
     """Create the default administrator if no account with that email exists.

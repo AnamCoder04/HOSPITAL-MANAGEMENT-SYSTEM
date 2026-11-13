@@ -2,11 +2,11 @@
 {% from "partials/_macros.html" import empty_state with context %}
 
 {% block title %}Dr. {{ doctor.full_name }} &middot; {{ hospital_name }}{% endblock %}
-{% block page_title %}Book an appointment{% endblock %}
+{% block page_title %}Doctor profile{% endblock %}
 {% block page_subtitle %}Dr. {{ doctor.full_name }} &middot; {{ doctor.specialization }}{% endblock %}
 
 {% block dashboard_content %}
-<!-- Doctor header -->
+<!-- Profile -->
 <div class="hms-card mb-4">
   <div class="hms-card-body">
     <div class="profile-header">
@@ -20,15 +20,38 @@
         <div class="d-flex flex-wrap gap-2">
           <span class="badge badge-soft-teal">&#8377;{{ "%.2f"|format(doctor.consultation_fee) }} consultation</span>
           <span class="badge badge-soft-blue">{{ doctor.experience_years }} years experience</span>
-          {% if doctor.qualifications %}
-            <span class="badge badge-soft-blue">{{ doctor.qualifications }}</span>
-          {% endif %}
+          <span class="badge {{ 'badge-soft-teal' if open_slots else 'badge-soft-amber' }}">
+            {{ open_slots }} open slot{{ "" if open_slots == 1 else "s" }} this week
+          </span>
         </div>
       </div>
       <a href="{{ url_for('patient.doctors') }}" class="btn btn-outline-hms btn-sm">
         <i class="bi bi-arrow-left me-1"></i>All doctors
       </a>
     </div>
+
+    <hr class="my-3">
+
+    <div class="row">
+      <div class="col-md-6">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Qualifications</dt><dd>{{ doctor.qualifications or "Not recorded" }}</dd>
+          <dt>Experience</dt><dd>{{ doctor.experience_years }} years</dd>
+          <dt>Department</dt><dd>{{ doctor.department.name }}</dd>
+        </dl>
+      </div>
+      <div class="col-md-6">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Consultation fee</dt><dd>&#8377;{{ "%.2f"|format(doctor.consultation_fee) }}</dd>
+          <dt>Room</dt><dd>{{ doctor.room_no or "—" }}</dd>
+          <dt>Availability</dt><dd>Next seven days</dd>
+        </dl>
+      </div>
+    </div>
+
+    {% if doctor.bio %}
+      <p class="text-muted-2 mb-0 mt-3">{{ doctor.bio }}</p>
+    {% endif %}
   </div>
 </div>
 
@@ -39,7 +62,12 @@
   </div>
 {% endif %}
 
-<!-- Week of published slots -->
+<!-- Pick a date and time -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <h2 class="h6 mb-0">Select an available date and time</h2>
+  <span class="form-text mb-0">Today and the next six days</span>
+</div>
+
 <div class="row g-3">
   {% for day in days %}
     <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
@@ -69,15 +97,15 @@
                   </span>
                 </div>
 
-                {% if status == "open" and doctor.is_bookable %}
+                {% if slot.id in my_slot_ids %}
+                  <span class="badge badge-soft-teal">Booked</span>
+                {% elif status == "open" and doctor.is_bookable %}
                   <form method="post" action="{{ url_for('patient.book_slot', slot_id=slot.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-hms">Book</button>
                   </form>
                 {% else %}
-                  <span class="badge {{ status_meta['full' if status == 'open' else status][1] }}">
-                    {{ "Full" if status == "open" else status_meta[status][0] }}
-                  </span>
+                  <span class="badge {{ status_meta[status][1] }}">{{ status_meta[status][0] }}</span>
                 {% endif %}
               </div>
             {% endfor %}
@@ -92,7 +120,7 @@
 
 <p class="form-text mt-4 mb-0">
   <i class="bi bi-info-circle me-1"></i>
-  Only the slots published by the doctor can be booked. Pick a slot and it is
-  confirmed immediately; manage it later from <strong>My appointments</strong>.
+  Only slots published by the doctor can be booked, and past times are not
+  shown. Your appointment is confirmed as soon as you book it.
 </p>
 {% endblock %}
