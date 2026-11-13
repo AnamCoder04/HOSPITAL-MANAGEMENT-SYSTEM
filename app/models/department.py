@@ -28,5 +28,15 @@ class Department(TimestampMixin, db.Model):
     def doctor_count(self) -> int:
         return len(self.doctors)
 
+    @property
+    def active_doctor_count(self) -> int:
+        """Doctors whose login is still enabled."""
+        return sum(1 for doctor in self.doctors if doctor.user and doctor.user.is_active)
+
+    @property
+    def specializations(self) -> list[str]:
+        """Specializations practised in this department (from doctor profiles)."""
+        return sorted({doctor.specialization for doctor in self.doctors})
+
     def __repr__(self) -> str:  # pragma: no cover - debugging helper
         return f"<Department {self.id} {self.name}>"

@@ -19,6 +19,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.blueprints.admin import admin_bp
 from app.blueprints.admin.forms import (
+    DepartmentForm,
+    DepartmentSearchForm,
     DoctorCreateForm,
     DoctorEditForm,
     PatientEditForm,
@@ -26,7 +28,7 @@ from app.blueprints.admin.forms import (
 )
 from app.extensions import db
 from app.models import Appointment, Department, Doctor, Patient, Role
-from app.services import doctor_service, patient_service
+from app.services import department_service, doctor_service, patient_service
 from app.services.stats_service import (
     admin_dashboard_stats,
     appointment_status_chart,
@@ -350,6 +352,107 @@ def appointments():
 @admin_bp.route("/departments")
 @role_required(Role.ADMIN)
 def departments():
-    """Departments with their doctor counts."""
-    departments_list = Department.query.order_by(Department.name).all()
-    return render_template("admin/departments.html", departments=departments_list)
+    """All departments, searchable by name/description and filterable by state."""
+    form = DepartmentSearchForm(request.args)
+    form.validate()  # GET filter form: errors are shown inline
+
+    term = form.q.data or ""
+    status = form.status.data or "all"
+
+    return render_template(
+        "admin/departments.html",
+        form=form,
+        departments=department_service.search_departments(term, status),
+        total_departments=Department.query.count(),
+        active_departments=Department.query.filter_by(is_active=True).count(),
+        filters={key: value for key, value in {"q": term, "status": status if status != "all" else ""}.items() if value},
+    )
+
+
+@admin_bp.route("/departments/new", methods=["GET", "POST"])
+@role_required(Role.ADMIN)
+def department_create():
+    """Create a department."""
+    form = DepartmentForm()
+
+    if form.validate_on_submit():
+        try:
+            department = department_service.create_department(form)
+        except IntegrityError:
+            db.session.rollback()
+            flash("A department with this name already exists.", "danger")
+        else:
+            flash(f"{department.name} was added.", "success")
+            return redirect(url_for("admin.department_view", department_id=department.id))
+
+    return render_template("admin/department_form.html", form=form, mode="create")
+
+
+@admin_bp.route("/departments/<int:department_id>")
+@role_required(Role.ADMIN)
+def department_view(department_id: int):
+    """Department details and every doctor registered under it."""
+    department = db.get_or_404(Department, department_id)
+
+    return render_template(
+        "admin/department_view.html",
+        department=department,
+        stats=department_service.department_stats(department),
+        doctors=department_service.department_doctors(department),
+        can_deactivate=department_service.can_deactivate(department),
+    )
+
+
+@admin_bp.route("/departments/<int:department_id>/edit", methods=["GET", "POST"])
+@role_required(Role.ADMIN)
+def department_edit(department_id: int):
+    """Rename a department, change its description or retire it."""
+    department = db.get_or_404(Department, department_id)
+    form = DepartmentForm(department=department)
+
+    if form.validate_on_submit():
+        try:
+            department_service.update_department(department, form)
+        except IntegrityError:
+            db.session.rollback()
+            flash("A department with this name already exists.", "danger")
+        except ValueError as error:
+            db.session.rollback()
+            flash(str(error), "warning")
+        else:
+            flash(f"{department.name} was updated.", "success")
+            return redirect(url_for("admin.department_view", department_id=department.id))
+
+    elif request.method == "GET":
+        form.name.data = department.name
+        form.description.data = department.description
+        form.is_active.data = department.is_active
+
+    return render_template(
+        "admin/department_form.html",
+        form=form,
+        mode="edit",
+        department=department,
+    )
+
+
+@admin_bp.route("/departments/<int:department_id>/toggle", methods=["POST"])
+@role_required(Role.ADMIN)
+def department_toggle(department_id: int):
+    """Retire or reactivate a department. Doctors and history are untouched."""
+    department = db.get_or_404(Department, department_id)
+
+    try:
+        is_active = department_service.toggle_department_active(department)
+    except ValueError as error:
+        flash(str(error), "warning")
+        return redirect(url_for("admin.department_view", department_id=department.id))
+
+    if is_active:
+        flash(f"{department.name} is active again and accepts doctor assignments.", "success")
+    else:
+        flash(
+            f"{department.name} was retired. Doctors and appointment history are unchanged.",
+            "warning",
+        )
+    return redirect(url_for("admin.department_view", department_id=department.id))

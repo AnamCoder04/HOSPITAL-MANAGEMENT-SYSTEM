@@ -33,6 +33,8 @@ from wtforms.validators import (
     ValidationError,
 )
 
+from sqlalchemy import func
+
 from app.extensions import db
 from app.models import Department, Doctor, Patient, User
 
@@ -64,6 +66,76 @@ def strip_whitespace(value):
 def collapse_spaces(value):
     """Turn 'A   B' into 'A B' so the same name cannot be stored twice."""
     return " ".join(value.split()) if isinstance(value, str) else value
+
+
+# ---------------------------------------------------------------------------
+# Departments
+# ---------------------------------------------------------------------------
+class DepartmentForm(FlaskForm):
+    """Create or edit a hospital department."""
+
+    name = StringField(
+        "Department name",
+        filters=[strip_whitespace, collapse_spaces],
+        validators=[
+            DataRequired(message="Enter the department name."),
+            Length(min=2, max=80, message="Name must be between 2 and 80 characters."),
+        ],
+    )
+    description = TextAreaField(
+        "Description",
+        filters=[strip_whitespace],
+        validators=[
+            Optional(),
+            Length(max=1000, message="Keep the description under 1000 characters."),
+        ],
+    )
+    is_active = BooleanField("Accepting doctor assignments", default=True)
+    submit = SubmitField("Save department")
+
+    def __init__(self, *args, department: Department | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Used by both validators below so a department keeps its own name and
+        # state while editing.
+        self.department = department
+
+    def validate_name(self, field: StringField) -> None:
+        """Names are unique case-insensitively, ignoring the edited record."""
+        existing = Department.query.filter(
+            func.lower(Department.name) == field.data.lower()
+        ).first()
+        if existing and (self.department is None or existing.id != self.department.id):
+            raise ValidationError("A department with this name already exists.")
+
+    def validate_is_active(self, field: BooleanField) -> None:
+        """Refuse to retire a department that still has active doctors."""
+        if self.department is None or not self.department.is_active or field.data:
+            return
+        if self.department.active_doctor_count:
+            raise ValidationError(
+                f"{self.department.active_doctor_count} active doctor(s) still work here. "
+                "Reassign or deactivate them before retiring the department."
+            )
+
+
+class DepartmentSearchForm(FlaskForm):
+    """GET filter form for the department list."""
+
+    class Meta:
+        csrf = False
+
+    q = StringField(
+        "Search departments",
+        filters=[strip_whitespace],
+        validators=[Optional(), Length(max=80, message="Search text is too long.")],
+    )
+    status = SelectField(
+        "Status",
+        choices=[("all", "All departments"), ("active", "Active only"), ("inactive", "Retired only")],
+        default="all",
+        validators=[Optional()],
+    )
+    submit = SubmitField("Search")
 
 
 # ---------------------------------------------------------------------------
@@ -161,10 +233,17 @@ class DoctorFormBase(FlaskForm):
         # `doctor` tells the validators which record is being edited, so the
         # doctor's own email/licence are not treated as duplicates.
         self.doctor = doctor
-        self.department_id.choices = [
-            (department.id, department.name)
-            for department in Department.query.order_by(Department.name).all()
-        ]
+
+        # Only active departments can be assigned. A doctor already working in
+        # a department that was later retired keeps it selectable, so editing
+        # their other details does not force a reassignment.
+        departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+        current = self.doctor.department if self.doctor is not None else None
+        if current is not None and not current.is_active:
+            departments.append(current)
+            departments.sort(key=lambda item: item.name)
+
+        self.department_id.choices = [(item.id, item.name) for item in departments]
 
     # --- Uniqueness validation ------------------------------------------
     def validate_email(self, field: StringField) -> None:
@@ -178,8 +257,14 @@ class DoctorFormBase(FlaskForm):
             raise ValidationError("This licence number is already registered.")
 
     def validate_department_id(self, field: SelectField) -> None:
-        if db.session.get(Department, field.data) is None:
+        """The department must exist *and* still accept doctor assignments."""
+        department = db.session.get(Department, field.data)
+        if department is None:
             raise ValidationError("Choose a valid department.")
+
+        current_id = self.doctor.department_id if self.doctor is not None else None
+        if not department.is_active and department.id != current_id:
+            raise ValidationError("That department has been retired. Choose an active department.")
 
 
 class DoctorCreateForm(DoctorFormBase):

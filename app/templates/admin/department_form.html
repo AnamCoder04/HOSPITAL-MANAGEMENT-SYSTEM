@@ -1,0 +1,76 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_field.html" import render_field %}
+
+{% block title %}{{ "Add department" if mode == "create" else "Edit department" }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}{{ "Add a department" if mode == "create" else "Edit department" }}{% endblock %}
+{% block page_subtitle %}
+  {% if mode == "create" %}
+    Departments group doctors by speciality
+  {% else %}
+    {{ department.name }} &middot; {{ department.doctor_count }} doctor{{ "" if department.doctor_count == 1 else "s" }}
+  {% endif %}
+{% endblock %}
+
+{% block dashboard_content %}
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="hms-card mb-4">
+        <div class="hms-card-header">
+          <div>
+            <h2 class="hms-card-title">Department details</h2>
+            <p class="hms-card-sub">Shown when an administrator adds or edits a doctor</p>
+          </div>
+        </div>
+        <div class="hms-card-body">
+          {{ render_field(form.name, placeholder="e.g. Cardiology", help_text="Must be unique. 2-80 characters.") }}
+          {{ render_field(form.description, placeholder="What this department treats and who it serves") }}
+        </div>
+      </div>
+
+      <div class="hms-card">
+        <div class="hms-card-header">
+          <h2 class="hms-card-title">Availability</h2>
+        </div>
+        <div class="hms-card-body">
+          <div class="form-check">
+            {{ form.is_active(class="form-check-input") }}
+            {{ form.is_active.label(class="form-check-label") }}
+          </div>
+          <p class="form-text mb-0 mt-2">
+            A retired department disappears from the doctor form, but every doctor
+            already assigned to it - and their appointment history - stays intact.
+          </p>
+          {% for error in form.is_active.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="hms-card">
+        <div class="hms-card-header">
+          <h2 class="hms-card-title">Save</h2>
+        </div>
+        <div class="hms-card-body">
+          {{ form.submit(class="btn btn-hms w-100") }}
+          <a href="{{ url_for('admin.department_view', department_id=department.id) if mode == 'edit' else url_for('admin.departments') }}"
+             class="btn btn-outline-hms w-100 mt-2">Cancel</a>
+
+          {% if mode == "edit" %}
+            <hr class="my-3">
+            <ul class="glance-list px-0 mb-0">
+              <li><span><i class="bi bi-people me-2 text-muted-2"></i>Doctors</span><strong>{{ department.doctor_count }}</strong></li>
+              <li><span><i class="bi bi-person-check me-2 text-muted-2"></i>Active doctors</span><strong>{{ department.active_doctor_count }}</strong></li>
+              <li><span><i class="bi bi-tags me-2 text-muted-2"></i>Specializations</span><strong>{{ department.specializations|length }}</strong></li>
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

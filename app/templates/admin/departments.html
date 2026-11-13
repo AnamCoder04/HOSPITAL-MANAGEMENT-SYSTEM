@@ -3,19 +3,56 @@
 
 {% block title %}Departments &middot; {{ hospital_name }}{% endblock %}
 {% block page_title %}Departments{% endblock %}
-{% block page_subtitle %}{{ departments|length }} department{{ "" if departments|length == 1 else "s" }} in the hospital{% endblock %}
+{% block page_subtitle %}{{ total_departments }} department{{ "" if total_departments == 1 else "s" }} &middot; {{ active_departments }} active{% endblock %}
 
 {% block dashboard_content %}
 <div class="hms-card">
   <div class="hms-card-header">
     <div>
       <h2 class="hms-card-title">All departments</h2>
-      <p class="hms-card-sub">Seeded at start-up and managed by the administrator</p>
+      <p class="hms-card-sub">Specialities doctors can be assigned to</p>
     </div>
-    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-hms btn-sm">
-      <i class="bi bi-arrow-left me-1"></i>Dashboard
-    </a>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-hms btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Dashboard
+      </a>
+      <a href="{{ url_for('admin.department_create') }}" class="btn btn-hms btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Add department
+      </a>
+    </div>
   </div>
+
+  <!-- Search & status filter -->
+  <form class="filter-bar" method="get" action="{{ url_for('admin.departments') }}">
+    <div class="row g-2 align-items-start">
+      <div class="col-md-6">
+        <label class="form-label" for="q">Search by name or description</label>
+        <input class="form-control {{ 'is-invalid' if form.q.errors }}" type="search"
+               id="q" name="q" value="{{ form.q.data or '' }}" placeholder="e.g. Cardio">
+        {% for error in form.q.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label" for="status">Status</label>
+        <select class="form-select" id="status" name="status">
+          {% for value, label in form.status.choices %}
+            <option value="{{ value }}" {{ "selected" if value == form.status.data }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-hms flex-grow-1">
+          <i class="bi bi-search me-1"></i>Search
+        </button>
+        <a href="{{ url_for('admin.departments') }}" class="btn btn-outline-hms" title="Clear filters">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </div>
+  </form>
 
   {% if departments %}
     <div class="table-responsive">
@@ -24,26 +61,84 @@
           <tr>
             <th scope="col">Department</th>
             <th scope="col">Description</th>
-            <th scope="col" class="text-end">Doctors</th>
+            <th scope="col">Doctors</th>
+            <th scope="col">Specializations</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for department in departments %}
             <tr>
-              <td class="fw-semibold text-nowrap">{{ department.name }}</td>
-              <td class="text-muted-2">{{ department.description or "—" }}</td>
-              <td class="text-end">
-                <span class="badge {{ 'badge-soft-blue' if department.doctor_count else 'badge-soft-amber' }}">
-                  {{ department.doctor_count }}
+              <td class="text-nowrap">
+                <a class="fw-semibold text-reset text-decoration-none"
+                   href="{{ url_for('admin.department_view', department_id=department.id) }}">
+                  {{ department.name }}
+                </a>
+              </td>
+              <td class="text-muted-2">
+                <span class="d-inline-block text-truncate" style="max-width: 320px;"
+                      title="{{ department.description or '' }}">
+                  {{ department.description or "—" }}
                 </span>
+              </td>
+              <td class="text-nowrap">
+                <span class="badge {{ 'badge-soft-blue' if department.doctor_count else 'badge-soft-amber' }}">
+                  {{ department.doctor_count }} total
+                </span>
+                <span class="badge badge-soft-teal">{{ department.active_doctor_count }} active</span>
+              </td>
+              <td class="text-nowrap">{{ department.specializations|length }}</td>
+              <td>
+                <span class="badge {{ 'badge-soft-teal' if department.is_active else 'badge-soft-amber' }}">
+                  {{ "Active" if department.is_active else "Retired" }}
+                </span>
+              </td>
+              <td class="text-end">
+                <div class="table-actions">
+                  <a href="{{ url_for('admin.department_view', department_id=department.id) }}"
+                     class="btn btn-sm btn-outline-hms" title="View department">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="{{ url_for('admin.department_edit', department_id=department.id) }}"
+                     class="btn btn-sm btn-outline-hms" title="Edit department">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+
+                  <form id="toggle-department-{{ department.id }}" method="post"
+                        action="{{ url_for('admin.department_toggle', department_id=department.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  </form>
+
+                  {% if department.is_active and department.active_doctor_count %}
+                    <button type="button" class="btn btn-sm btn-outline-hms" disabled
+                            title="{{ department.active_doctor_count }} active doctor(s) still work here - reassign or deactivate them first">
+                      <i class="bi bi-pause-circle"></i>
+                    </button>
+                  {% else %}
+                    <button type="button" class="btn btn-sm btn-outline-hms"
+                            title="{{ 'Retire department' if department.is_active else 'Reactivate department' }}"
+                            data-confirm-form="#toggle-department-{{ department.id }}"
+                            data-confirm-title="{{ 'Retire ' ~ department.name ~ '?' if department.is_active else 'Reactivate ' ~ department.name ~ '?' }}"
+                            data-confirm-text="{{ 'It will no longer be offered when adding or editing doctors. Existing doctors, appointments and treatment records are unchanged.' if department.is_active else 'The department will accept doctor assignments again.' }}"
+                            data-confirm-button="{{ 'Retire' if department.is_active else 'Reactivate' }}"
+                            data-confirm-tone="{{ 'warning' if department.is_active else 'success' }}">
+                      <i class="bi {{ 'bi-pause-circle' if department.is_active else 'bi-play-circle' }}"></i>
+                    </button>
+                  {% endif %}
+                </div>
               </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+  {% elif form.q.data or form.status.data not in ("all", None, "") %}
+    {{ empty_state("No departments match your search", "Try a shorter name or switch the status filter.", "bi-search") }}
   {% else %}
-    {{ empty_state("No departments", "Departments are seeded when the application starts.", "bi-diagram-3") }}
+    {{ empty_state("No departments", "Add the first department to start assigning doctors.", "bi-diagram-3") }}
   {% endif %}
 </div>
+
+{% include "partials/_confirm_modal.html" %}
 {% endblock %}
