@@ -1,0 +1,151 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import empty_state, action_button with context %}
+{% from "partials/_field.html" import render_field %}
+
+{% block title %}My availability &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}My availability{% endblock %}
+{% block page_subtitle %}{{ first_day.strftime("%d %b") }} &ndash; {{ last_day.strftime("%d %b %Y") }} &middot; next seven days{% endblock %}
+
+{% block dashboard_content %}
+<!-- Publish a slot -->
+<div class="hms-card mb-4">
+  <div class="hms-card-header">
+    <div>
+      <h2 class="hms-card-title">Publish a time slot</h2>
+      <p class="hms-card-sub">
+        Patients can book any open slot between
+        {{ first_day.strftime("%d %b") }} and {{ last_day.strftime("%d %b") }}
+      </p>
+    </div>
+  </div>
+  <div class="hms-card-body">
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="row g-3 align-items-start">
+        <div class="col-12 col-md-6 col-xl-3">
+          {{ render_field(form.available_date, help_text="Only the next seven days.") }}
+        </div>
+        <div class="col-6 col-md-3 col-xl-2">
+          {{ render_field(form.start_time) }}
+        </div>
+        <div class="col-6 col-md-3 col-xl-2">
+          {{ render_field(form.end_time) }}
+        </div>
+        <div class="col-6 col-md-3 col-xl-2">
+          {{ render_field(form.max_patients, help_text="1&ndash;20") }}
+        </div>
+        <div class="col-6 col-md-3 col-xl-3 pt-md-4">
+          {{ form.submit(class="btn btn-hms w-100 mt-md-2") }}
+        </div>
+      </div>
+      <p class="form-text mb-0">
+        <i class="bi bi-info-circle me-1"></i>
+        Working hours are 08:00 to 21:00 and slots cannot overlap. A slot with
+        bookings cannot change its time or be hidden until those appointments
+        are cancelled.
+      </p>
+    </form>
+  </div>
+</div>
+
+<!-- Week grid -->
+<div class="row g-3">
+  {% for day in days %}
+    <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
+      <div class="hms-card day-card h-100">
+        <div class="day-head">
+          <div>
+            <span class="day-name">{{ day.strftime("%A") }}</span>
+            <span class="day-date">{{ day.strftime("%d %b") }}</span>
+          </div>
+          {% if day == today %}
+            <span class="badge badge-soft-blue">Today</span>
+          {% endif %}
+        </div>
+
+        <div class="hms-card-body">
+          {% set slots = slots_by_date[day] %}
+          {% if slots %}
+            {% for slot in slots %}
+              {% set status = statuses[slot.id] %}
+              <div class="slot-row{{ ' is-muted' if status in ('hidden', 'past') }}">
+                <div class="min-w-0">
+                  <span class="slot-time">{{ slot.label }}</span>
+                  <span class="slot-meta">
+                    {{ slot.booked_count }}/{{ slot.max_patients }} booked
+                    <span class="badge {{ status_meta[status][1] }}">{{ status_meta[status][0] }}</span>
+                  </span>
+
+                  {% if slot.active_appointments %}
+                    <span class="slot-booked">
+                      <i class="bi bi-person-check"></i>
+                      {% for appointment in slot.active_appointments %}
+                        {{ appointment.patient.full_name }} ({{ appointment.appointment_time.strftime("%H:%M") }}){% if not loop.last %}, {% endif %}
+                      {% endfor %}
+                    </span>
+                  {% endif %}
+                </div>
+
+                <div class="slot-actions">
+                  <a href="{{ url_for('doctor.availability_edit', slot_id=slot.id) }}"
+                     class="btn btn-sm btn-outline-hms" title="Edit slot">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+
+                  <form id="toggleSlot{{ slot.id }}" method="post"
+                        action="{{ url_for('doctor.availability_toggle', slot_id=slot.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  </form>
+                  {% if slot.is_active and slot.booked_count %}
+                    <button type="button" class="btn btn-sm btn-outline-hms" disabled
+                            title="Has booked appointments - cancel them before hiding this slot">
+                      <i class="bi bi-eye-slash"></i>
+                    </button>
+                  {% else %}
+                    <button type="button" class="btn btn-sm btn-outline-hms"
+                            title="{{ 'Hide from patients' if slot.is_active else 'Show to patients' }}"
+                            data-confirm-form="#toggleSlot{{ slot.id }}"
+                            data-confirm-title="{{ 'Hide this slot?' if slot.is_active else 'Show this slot?' }}"
+                            data-confirm-text="{{ slot.label ~ ' on ' ~ day.strftime('%a, %d %b') ~ (' will stop appearing in patient bookings.' if slot.is_active else ' will become bookable again.') }}"
+                            data-confirm-button="{{ 'Hide' if slot.is_active else 'Show' }}"
+                            data-confirm-tone="{{ 'warning' if slot.is_active else 'success' }}">
+                      <i class="bi {{ 'bi-eye-slash' if slot.is_active else 'bi-eye' }}"></i>
+                    </button>
+                  {% endif %}
+
+                  <form id="deleteSlot{{ slot.id }}" method="post"
+                        action="{{ url_for('doctor.availability_delete', slot_id=slot.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  </form>
+                  {% if slot.booked_count %}
+                    <button type="button" class="btn btn-sm btn-outline-danger" disabled
+                            title="Has booked appointments - cancel them before removing this slot">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  {% else %}
+                    <button type="button" class="btn btn-sm btn-outline-danger" title="Remove slot"
+                            data-confirm-form="#deleteSlot{{ slot.id }}"
+                            data-confirm-title="Remove this slot?"
+                            data-confirm-text="{{ slot.label }} on {{ day.strftime('%a, %d %b') }} will be removed. No one has booked it."
+                            data-confirm-button="Remove" data-confirm-tone="danger">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="form-text mb-0">No slots published.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="mt-4">
+  {{ action_button("doctor.dashboard", "Back to dashboard", "bi-arrow-left") }}
+</div>
+
+{% include "partials/_confirm_modal.html" %}
+{% endblock %}

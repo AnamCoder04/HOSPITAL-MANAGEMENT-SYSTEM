@@ -1,0 +1,71 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_field.html" import render_field %}
+
+{% block title %}Edit slot &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Edit availability slot{% endblock %}
+{% block page_subtitle %}{{ slot.available_date.strftime("%A, %d %B %Y") }} &middot; {{ slot.label }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <div>
+          <h2 class="hms-card-title">Slot details</h2>
+          <p class="hms-card-sub">Dates must stay within the next seven days</p>
+        </div>
+      </div>
+      <div class="hms-card-body">
+        <form method="post" novalidate>
+          {{ form.hidden_tag() }}
+          <div class="row">
+            <div class="col-md-6">{{ render_field(form.available_date, help_text=first_day.strftime("%d %b") ~ " to " ~ last_day.strftime("%d %b")) }}</div>
+            <div class="col-md-6">{{ render_field(form.max_patients, help_text="1&ndash;20 patients") }}</div>
+            <div class="col-md-6">{{ render_field(form.start_time) }}</div>
+            <div class="col-md-6">{{ render_field(form.end_time) }}</div>
+          </div>
+
+          {{ form.submit(class="btn btn-hms") }}
+          <a href="{{ url_for('doctor.availability') }}" class="btn btn-outline-hms ms-2">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="hms-card">
+      <div class="hms-card-header">
+        <h2 class="hms-card-title">Bookings in this slot</h2>
+      </div>
+      <div class="hms-card-body">
+        <ul class="glance-list px-0">
+          <li><span><i class="bi bi-people me-2 text-muted-2"></i>Capacity</span><strong>{{ slot.max_patients }}</strong></li>
+          <li><span><i class="bi bi-calendar2-check me-2 text-muted-2"></i>Booked</span><strong>{{ slot.booked_count }}</strong></li>
+        </ul>
+
+        {% if slot.active_appointments %}
+          <ul class="recent-list px-0 mt-3">
+            {% for appointment in slot.active_appointments %}
+              <li>
+                <span class="recent-avatar"><i class="bi bi-person"></i></span>
+                <span class="recent-main">
+                  <strong>{{ appointment.patient.full_name }}</strong>
+                  <small>{{ appointment.appointment_time.strftime("%H:%M") }} &middot; {{ appointment.patient.patient_code }}</small>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+          <p class="form-text mb-0">
+            This slot already has bookings, so its date and time are locked and it
+            cannot be hidden or removed until those appointments are cancelled.
+          </p>
+        {% else %}
+          <p class="form-text mb-0">
+            Nobody has booked this slot yet, so you can move it, resize it or remove it freely.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

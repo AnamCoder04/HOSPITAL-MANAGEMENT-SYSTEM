@@ -1,0 +1,70 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import empty_state with context %}
+
+{% block title %}Find a doctor &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Find a doctor{% endblock %}
+{% block page_subtitle %}See who is available over the next seven days{% endblock %}
+
+{% block dashboard_content %}
+<div class="hms-card mb-4">
+  <div class="hms-card-body">
+    <form method="get" action="{{ url_for('patient.doctors') }}" class="row g-2 align-items-end">
+      <div class="col-md-8">
+        <label class="form-label" for="q">Search by doctor or specialization</label>
+        <input class="form-control" type="search" id="q" name="q" value="{{ term }}"
+               placeholder="e.g. Cardiology or Sharma">
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-hms flex-grow-1"><i class="bi bi-search me-1"></i>Search</button>
+        <a href="{{ url_for('patient.doctors') }}" class="btn btn-outline-hms" title="Clear search">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if doctors %}
+  <div class="row g-3">
+    {% for doctor in doctors %}
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="hms-card h-100">
+          <div class="hms-card-body">
+            <div class="d-flex align-items-start gap-3">
+              <div class="profile-avatar">{{ doctor.user.initials }}</div>
+              <div class="min-w-0 flex-grow-1">
+                <h2 class="h6 mb-1 text-truncate">Dr. {{ doctor.full_name }}</h2>
+                <p class="text-muted-2 mb-1 small">{{ doctor.specialization }}</p>
+                <p class="text-muted-2 mb-2 small">
+                  {{ doctor.department.name }}
+                  {% if doctor.room_no %}&middot; Room {{ doctor.room_no }}{% endif %}
+                </p>
+                <span class="badge badge-soft-blue">{{ doctor.experience_years }} yrs experience</span>
+                <span class="badge badge-soft-teal">&#8377;{{ "%.2f"|format(doctor.consultation_fee) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pagination-bar">
+            <span class="pagination-summary">
+              {% if open_slots[doctor.id] %}
+                {{ open_slots[doctor.id] }} open slot{{ "" if open_slots[doctor.id] == 1 else "s" }} this week
+              {% else %}
+                No open slots this week
+              {% endif %}
+            </span>
+            <a href="{{ url_for('patient.doctor_view', doctor_id=doctor.id) }}"
+               class="btn btn-hms btn-sm">
+              View availability<i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% elif term %}
+  {{ empty_state("No doctors match your search", "Try another name or specialization.", "bi-search") }}
+{% else %}
+  {{ empty_state("No doctors available", "Doctors accepting bookings will appear here.", "bi-person-badge") }}
+{% endif %}
+{% endblock %}

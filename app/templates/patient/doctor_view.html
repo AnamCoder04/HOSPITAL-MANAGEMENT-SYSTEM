@@ -1,0 +1,98 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import empty_state with context %}
+
+{% block title %}Dr. {{ doctor.full_name }} &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}Book an appointment{% endblock %}
+{% block page_subtitle %}Dr. {{ doctor.full_name }} &middot; {{ doctor.specialization }}{% endblock %}
+
+{% block dashboard_content %}
+<!-- Doctor header -->
+<div class="hms-card mb-4">
+  <div class="hms-card-body">
+    <div class="profile-header">
+      <div class="profile-avatar">{{ doctor.user.initials }}</div>
+      <div class="flex-grow-1 min-w-0">
+        <h2 class="h4 mb-1">Dr. {{ doctor.full_name }}</h2>
+        <p class="text-muted-2 mb-1">
+          {{ doctor.specialization }} &middot; {{ doctor.department.name }}
+          {% if doctor.room_no %}&middot; Room {{ doctor.room_no }}{% endif %}
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge badge-soft-teal">&#8377;{{ "%.2f"|format(doctor.consultation_fee) }} consultation</span>
+          <span class="badge badge-soft-blue">{{ doctor.experience_years }} years experience</span>
+          {% if doctor.qualifications %}
+            <span class="badge badge-soft-blue">{{ doctor.qualifications }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <a href="{{ url_for('patient.doctors') }}" class="btn btn-outline-hms btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>All doctors
+      </a>
+    </div>
+  </div>
+</div>
+
+{% if not doctor.is_bookable %}
+  <div class="alert alert-warning" role="alert">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    This doctor is not accepting new bookings right now.
+  </div>
+{% endif %}
+
+<!-- Week of published slots -->
+<div class="row g-3">
+  {% for day in days %}
+    <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
+      <div class="hms-card day-card h-100">
+        <div class="day-head">
+          <div>
+            <span class="day-name">{{ day.strftime("%A") }}</span>
+            <span class="day-date">{{ day.strftime("%d %b") }}</span>
+          </div>
+          {% if day == today %}<span class="badge badge-soft-blue">Today</span>{% endif %}
+        </div>
+
+        <div class="hms-card-body">
+          {% set slots = slots_by_date[day] %}
+          {% if slots %}
+            {% for slot in slots %}
+              {% set status = statuses[slot.id] %}
+              <div class="slot-row">
+                <div class="min-w-0">
+                  <span class="slot-time">{{ slot.label }}</span>
+                  <span class="slot-meta">
+                    {% if status == "open" %}
+                      {{ slot.slots_left }} place{{ "" if slot.slots_left == 1 else "s" }} left
+                    {% else %}
+                      {{ status_meta[status][0] }}
+                    {% endif %}
+                  </span>
+                </div>
+
+                {% if status == "open" and doctor.is_bookable %}
+                  <form method="post" action="{{ url_for('patient.book_slot', slot_id=slot.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-hms">Book</button>
+                  </form>
+                {% else %}
+                  <span class="badge {{ status_meta['full' if status == 'open' else status][1] }}">
+                    {{ "Full" if status == "open" else status_meta[status][0] }}
+                  </span>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="form-text mb-0">No slots published.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<p class="form-text mt-4 mb-0">
+  <i class="bi bi-info-circle me-1"></i>
+  Only the slots published by the doctor can be booked. Pick a slot and it is
+  confirmed immediately; manage it later from <strong>My appointments</strong>.
+</p>
+{% endblock %}
