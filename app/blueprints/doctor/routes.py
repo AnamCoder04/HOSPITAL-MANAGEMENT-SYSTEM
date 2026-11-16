@@ -168,6 +168,17 @@ def appointment_cancel(appointment_id: int):
     return redirect(url_for("doctor.appointment_view", appointment_id=appointment.id))
 
 
+@doctor_bp.route("/profile")
+@role_required(Role.DOCTOR)
+def profile():
+    """The doctor's own professional profile (maintained by the administrator)."""
+    doctor = _current_doctor()
+    if doctor is None:
+        return redirect(url_for("main.index"))
+
+    return render_template("doctor/profile.html", doctor=doctor)
+
+
 # ---------------------------------------------------------------------------
 # Patients and medical history
 # ---------------------------------------------------------------------------

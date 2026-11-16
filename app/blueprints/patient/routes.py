@@ -52,6 +52,17 @@ def dashboard():
     )
 
 
+@patient_bp.route("/profile")
+@role_required(Role.PATIENT)
+def profile():
+    """The patient's own account and medical profile (read-only)."""
+    patient = _current_patient()
+    if patient is None:
+        return redirect(url_for("main.index"))
+
+    return render_template("patient/profile.html", patient=patient)
+
+
 # ---------------------------------------------------------------------------
 # Doctor search and availability
 # ---------------------------------------------------------------------------

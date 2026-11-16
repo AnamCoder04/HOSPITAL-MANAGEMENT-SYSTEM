@@ -1,0 +1,80 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import account_badge with context %}
+
+{% block title %}My profile &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}My profile{% endblock %}
+{% block page_subtitle %}{{ patient.patient_code }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="hms-card mb-4">
+  <div class="hms-card-body">
+    <div class="profile-header">
+      <div class="profile-avatar">{{ patient.user.initials }}</div>
+      <div class="flex-grow-1 min-w-0">
+        <h2 class="h4 mb-1">{{ patient.full_name }}</h2>
+        <p class="text-muted-2 mb-1">
+          {{ patient.patient_code }}
+          {% if patient.age is not none %} &middot; {{ patient.age }} years{% endif %}
+          {% if patient.gender %} &middot; {{ patient.gender }}{% endif %}
+          {% if patient.blood_group %} &middot; Blood group {{ patient.blood_group }}{% endif %}
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          {{ account_badge(patient.user) }}
+          <span class="badge badge-soft-blue">Registered {{ patient.created_at.strftime("%d %b %Y") }}</span>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('patient.records') }}" class="btn btn-sm btn-outline-hms">
+          <i class="bi bi-journal-medical me-1"></i>Medical records
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-6">
+    <div class="hms-card h-100">
+      <div class="hms-card-header"><h2 class="hms-card-title">Contact details</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Patient ID</dt><dd>{{ patient.patient_code }}</dd>
+          <dt>Email</dt><dd class="text-break">{{ patient.email }}</dd>
+          <dt>Phone</dt><dd>{{ patient.phone or "—" }}</dd>
+          <dt>Emergency contact</dt><dd>{{ patient.emergency_contact or "—" }}</dd>
+          <dt>Address</dt><dd>{{ patient.address or "—" }}</dd>
+          <dt>Date of birth</dt>
+          <dd>{{ patient.date_of_birth.strftime("%d %b %Y") if patient.date_of_birth else "—" }}</dd>
+        </dl>
+        <p class="form-text mb-0 mt-3">
+          Contact details are updated by the hospital administration. Ask the front
+          desk if something here is out of date.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-6">
+    <div class="hms-card h-100">
+      <div class="hms-card-header"><h2 class="hms-card-title">Medical profile</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Gender</dt><dd>{{ patient.gender or "—" }}</dd>
+          <dt>Blood group</dt><dd>{{ patient.blood_group or "—" }}</dd>
+          <dt>Allergies / chronic conditions</dt><dd>{{ patient.allergies or "None recorded" }}</dd>
+          <dt>Account created</dt><dd>{{ patient.created_at.strftime("%d %b %Y") }}</dd>
+          <dt>Last login</dt>
+          <dd>{{ patient.user.last_login.strftime("%d %b %Y, %H:%M") if patient.user.last_login else "—" }}</dd>
+        </dl>
+        <div class="alert alert-secondary mt-3 mb-0 py-2">
+          <span class="small">
+            <i class="bi bi-shield-lock me-1"></i>
+            Your records are private to your patient ID and are visible only to you,
+            your treating doctors and the hospital administration.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

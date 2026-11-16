@@ -1,0 +1,77 @@
+{% extends "layouts/dashboard.html" %}
+{% from "partials/_macros.html" import account_badge with context %}
+
+{% block title %}My profile &middot; {{ hospital_name }}{% endblock %}
+{% block page_title %}My profile{% endblock %}
+{% block page_subtitle %}{{ doctor.specialization }} &middot; {{ doctor.department.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="hms-card mb-4">
+  <div class="hms-card-body">
+    <div class="profile-header">
+      <div class="profile-avatar">{{ doctor.user.initials }}</div>
+      <div class="flex-grow-1 min-w-0">
+        <h2 class="h4 mb-1">Dr. {{ doctor.full_name }}</h2>
+        <p class="text-muted-2 mb-1">
+          {{ doctor.specialization }}{% if doctor.qualifications %} &middot; {{ doctor.qualifications }}{% endif %}
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          {{ account_badge(doctor.user) }}
+          <span class="badge {{ 'badge-soft-teal' if doctor.is_available else 'badge-soft-amber' }}">
+            {{ "Available for bookings" if doctor.is_available else "Not accepting bookings" }}
+          </span>
+          <span class="badge badge-soft-blue">{{ doctor.department.name }}</span>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('doctor.availability') }}" class="btn btn-sm btn-outline-hms">
+          <i class="bi bi-clock-history me-1"></i>Availability
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-6">
+    <div class="hms-card h-100">
+      <div class="hms-card-header"><h2 class="hms-card-title">Professional details</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Department</dt><dd>{{ doctor.department.name }}</dd>
+          <dt>Specialization</dt><dd>{{ doctor.specialization }}</dd>
+          <dt>Qualifications</dt><dd>{{ doctor.qualifications or "—" }}</dd>
+          <dt>Licence number</dt><dd>{{ doctor.license_no }}</dd>
+          <dt>Experience</dt><dd>{{ doctor.experience_years }} year{{ "" if doctor.experience_years == 1 else "s" }}</dd>
+          <dt>Consultation fee</dt><dd>&#8377;{{ "%.2f"|format(doctor.consultation_fee) }}</dd>
+          <dt>Room / chamber</dt><dd>{{ doctor.room_no or "—" }}</dd>
+        </dl>
+        {% if doctor.bio %}
+          <p class="record-text mt-3 mb-0">{{ doctor.bio }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-6">
+    <div class="hms-card h-100">
+      <div class="hms-card-header"><h2 class="hms-card-title">Account details</h2></div>
+      <div class="hms-card-body">
+        <dl class="detail-list px-0 mb-0">
+          <dt>Full name</dt><dd>{{ doctor.full_name }}</dd>
+          <dt>Email</dt><dd class="text-break">{{ doctor.email }}</dd>
+          <dt>Phone</dt><dd>{{ doctor.phone or "—" }}</dd>
+          <dt>Role</dt><dd>{{ doctor.user.role_label }}</dd>
+          <dt>Account created</dt><dd>{{ doctor.created_at.strftime("%d %b %Y") }}</dd>
+          <dt>Last login</dt>
+          <dd>{{ doctor.user.last_login.strftime("%d %b %Y, %H:%M") if doctor.user.last_login else "—" }}</dd>
+        </dl>
+        <p class="form-text mb-0 mt-3">
+          Name, department, fee and availability are maintained by the hospital
+          administration. Ask the front desk to change them.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
