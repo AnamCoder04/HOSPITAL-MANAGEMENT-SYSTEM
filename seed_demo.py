@@ -18,9 +18,8 @@ Patient  meera.iyer@example.com            Patient@123
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta
+from datetime import date, time, timedelta
 
-from app import create_app
 from app.extensions import db
 from app.models import (
     Appointment,
@@ -127,8 +126,11 @@ def _get_or_create_appointment(
     return appointment
 
 
-def seed(app=None) -> None:
-    app = app or create_app()
+def seed(app=None, quiet: bool = False) -> None:
+    if app is None:
+        from app import create_app
+
+        app = create_app()
 
     with app.app_context():
         today = date.today()
@@ -220,14 +222,15 @@ def seed(app=None) -> None:
 
         db.session.commit()
 
-        print("Demo data ready.")
-        print(f"  Doctors : {Doctor.query.count()}   Patients: {Patient.query.count()}   "
-              f"Appointments: {Appointment.query.count()}   Treatments: {Treatment.query.count()}")
-        print("  Doctor  : ananya.sharma@medicare-demo.com / Doctor@123")
-        print("  Doctor  : vikram.rao@medicare-demo.com    / Doctor@123")
-        print("  Patient : rohit.verma@example.com         / Patient@123")
-        print("  Patient : meera.iyer@example.com          / Patient@123")
-        print(f"  Open slots: {slot_1000.label} tomorrow with Dr. Ananya Sharma")
+        if not quiet:
+            print("Demo data ready.")
+            print(f"  Doctors : {Doctor.query.count()}   Patients: {Patient.query.count()}   "
+                  f"Appointments: {Appointment.query.count()}   Treatments: {Treatment.query.count()}")
+            print("  Doctor  : ananya.sharma@medicare-demo.com / Doctor@123")
+            print("  Doctor  : vikram.rao@medicare-demo.com    / Doctor@123")
+            print("  Patient : rohit.verma@example.com         / Patient@123")
+            print("  Patient : meera.iyer@example.com          / Patient@123")
+            print(f"  Open slots: {slot_1000.label} tomorrow with Dr. Ananya Sharma")
 
 
 if __name__ == "__main__":

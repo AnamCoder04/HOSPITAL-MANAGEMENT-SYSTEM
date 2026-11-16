@@ -115,9 +115,12 @@ HOSPITAL-MANAGEMENT-SYSTEM/
 │   ├── TESTING_CHECKLIST.md     # manual test plan
 │   ├── VIVA.md                  # viva questions and answers
 │   ├── VIDEO_SCRIPT.md          # ~5 minute demo narration
-│   └── AI_DECLARATION.md        # AI/LLM usage declaration draft
+│   ├── AI_DECLARATION.md        # AI/LLM usage declaration draft
+│   └── DEPLOY_VERCEL.md         # Vercel deployment guide and limits
 ├── config.py                    # environment configuration classes
-├── run.py                       # entry point (`python run.py`)
+├── run.py                       # local entry point (`python run.py`)
+├── index.py                     # Vercel function entrypoint
+├── vercel.json                  # Vercel function configuration
 ├── seed_demo.py                 # idempotent demo data script
 ├── requirements.txt
 ├── .env.example
@@ -215,6 +218,7 @@ Change the administrator password (via `.env`) before any real deployment.
 | [docs/VIVA.md](docs/VIVA.md) | Viva questions with model answers |
 | [docs/VIDEO_SCRIPT.md](docs/VIDEO_SCRIPT.md) | Five-minute presentation script |
 | [docs/AI_DECLARATION.md](docs/AI_DECLARATION.md) | AI/LLM usage declaration draft |
+| [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md) | Vercel deployment steps, environment variables and limitations |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed design decisions per module |
 
 ---
@@ -246,7 +250,33 @@ manual checks.
 
 ---
 
-## 7. Packaging for submission
+## 7. Deploying on Vercel
+
+The repository is Vercel-ready: `index.py` is the function entrypoint,
+`vercel.json` configures the function, `.vercelignore` keeps local files out and
+`config.py` switches the SQLite file to `/tmp` when `VERCEL=1`.
+
+```bash
+npm install -g vercel
+vercel login
+vercel link
+vercel env add SECRET_KEY production     # plus ADMIN_EMAIL / ADMIN_PASSWORD
+vercel --prod
+```
+
+Or import the GitHub repository in the Vercel dashboard (framework preset:
+Flask) and add the environment variables there.
+
+> **Important — Vercel has no persistent filesystem.** The SQLite database
+> lives in `/tmp/medicare/hms.sqlite3`, which is wiped when the function
+> instance is recycled and is not shared between instances. Demo data is
+> re-seeded automatically (`AUTO_SEED_DEMO=1` on Vercel), so the app is fine for
+> a live walkthrough, but registrations, bookings and logins can disappear or
+> appear signed out on a later request. For a deployment that keeps data, run
+> locally or use a host with a persistent disk and point `DATABASE_URL` at it.
+> Full details, checks and troubleshooting: [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md).
+
+## 8. Packaging for submission
 
 From the project root (macOS/Linux):
 
@@ -269,7 +299,7 @@ Before zipping: delete `.env` (it may contain a secret), keep `instance/` out
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
@@ -282,6 +312,6 @@ Before zipping: delete `.env` (it may contain a secret), keep `instance/` out
 
 ---
 
-## 9. License
+## 10. License
 
 Released under the MIT License — see [LICENSE](LICENSE).

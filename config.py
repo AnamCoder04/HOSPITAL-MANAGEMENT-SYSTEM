@@ -16,6 +16,13 @@ BASE_DIR = Path(__file__).resolve().parent
 # Load .env into os.environ before the classes below are evaluated.
 load_dotenv(BASE_DIR / ".env")
 
+# Vercel sets VERCEL=1 inside every Function. Its filesystem is read-only
+# except for /tmp, which is also wiped when the instance is recycled, so the
+# SQLite file has to live there (see docs/DEPLOY_VERCEL.md for the limits of
+# that). Local runs keep using instance/hms.sqlite3 as before.
+ON_VERCEL = bool(os.environ.get("VERCEL"))
+DEFAULT_SQLITE_URI = "sqlite:////tmp/medicare/hms.sqlite3" if ON_VERCEL else "sqlite:///hms.sqlite3"
+
 
 class Config:
     """Settings shared by every environment."""
@@ -28,14 +35,22 @@ class Config:
     # --- Database -------------------------------------------------------
     # A relative SQLite path is resolved inside Flask's instance/ folder,
     # i.e. sqlite:///hms.sqlite3 -> <project>/instance/hms.sqlite3
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///hms.sqlite3")
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", DEFAULT_SQLITE_URI)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+
+    # Seed the demo doctors/patients/slots on start-up. Enabled automatically
+    # on Vercel because the database there starts empty on every fresh
+    # instance; set AUTO_SEED_DEMO=0 to turn it off.
+    AUTO_SEED_DEMO = (os.environ.get("AUTO_SEED_DEMO") or ("1" if ON_VERCEL else "0")) == "1"
 
     # --- Security -------------------------------------------------------
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    # Vercel serves every deployment over HTTPS.
+    SESSION_COOKIE_SECURE = ON_VERCEL
     REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SECURE = ON_VERCEL
     WTF_CSRF_TIME_LIMIT = None  # token valid for the whole session
 
     # --- Business rules (used from Task 3 onwards) ----------------------

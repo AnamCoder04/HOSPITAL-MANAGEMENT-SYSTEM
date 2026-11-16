@@ -27,7 +27,15 @@ def create_app(config_name: str | None = None) -> Flask:
     app.config.from_object(get_config(config_name))
 
     # Flask puts per-installation data (the SQLite file) in instance/.
-    os.makedirs(app.instance_path, exist_ok=True)
+    # On a read-only host such as Vercel that directory cannot be created, so
+    # the failure is tolerated: the configured database path lives elsewhere
+    # (/tmp) and its directory is created just below.
+    try:
+        os.makedirs(app.instance_path, exist_ok=True)
+    except OSError:
+        app.logger.debug("instance/ is not writable; using the configured database path")
+
+    _ensure_database_directory(app)
 
     # 2. Extensions -------------------------------------------------------
     db.init_app(app)
@@ -51,6 +59,16 @@ def create_app(config_name: str | None = None) -> Flask:
     from app.utils.bootstrap import ensure_database
 
     ensure_database(app)
+
+    # Optional demo data (automatic on Vercel, see config.AUTO_SEED_DEMO).
+    # The seeder is idempotent, so this is safe on every cold start.
+    if app.config.get("AUTO_SEED_DEMO"):
+        try:
+            from seed_demo import seed as seed_demo_data
+
+            seed_demo_data(app, quiet=True)
+        except Exception:  # pragma: no cover - never block boot on demo data
+            app.logger.exception("Demo data could not be seeded")
 
     # 6. Template globals / context processors ----------------------------
     register_template_context(app)
@@ -90,6 +108,24 @@ def register_template_context(app: Flask) -> None:
             "dashboard_url": dashboard_url,
             "available_endpoints": available_endpoints,
         }
+
+
+def _ensure_database_directory(app: Flask) -> None:
+    """Create the parent directory of an absolute SQLite database path.
+
+    Flask-SQLAlchemy resolves relative paths inside instance/, but a path such
+    as /tmp/medicare/hms.sqlite3 (used on Vercel) has to exist before SQLite
+    can open the file. Non-SQLite URLs are left alone.
+    """
+    from sqlalchemy.engine import make_url
+
+    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    if not uri.startswith("sqlite"):
+        return
+
+    database = make_url(uri).database
+    if database and database != ":memory:" and os.path.isabs(database):
+        os.makedirs(os.path.dirname(database), exist_ok=True)
 
 
 def register_error_handlers(app: Flask) -> None:
